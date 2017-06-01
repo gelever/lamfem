@@ -12,7 +12,7 @@
 #ifndef MFEM_MATRIX
 #define MFEM_MATRIX
 
-#include "../general/array.hpp"
+#include "array.hpp"
 #include "operator.hpp"
 #include <iostream>
 

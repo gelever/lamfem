@@ -14,7 +14,7 @@
 
 // Data type vector
 
-#include "../general/array.hpp"
+#include "array.hpp"
 #ifdef MFEM_USE_SUNDIALS
 #include <nvector/nvector_serial.h>
 #endif
