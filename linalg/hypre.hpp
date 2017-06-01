@@ -780,15 +780,6 @@ class HypreBoomerAMG : public HypreSolver
 private:
    HYPRE_Solver amg_precond;
 
-   /// Rigid body modes
-   Array<HYPRE_ParVector> rbms;
-
-   /// Finite element space for elasticity problems, see SetElasticityOptions()
-   //ParFiniteElementSpace *fespace;
-
-   /// Recompute the rigid-body modes vectors (in the rbms array)
-   //void RecomputeRBMs();
-
    /// Default, generally robust, BoomerAMG options
    void SetDefaultOptions();
 
@@ -830,83 +821,6 @@ public:
    virtual ~HypreBoomerAMG();
 };
 
-/*
-/// Compute the discrete gradient matrix between the nodal linear and ND1 spaces
-HypreParMatrix* DiscreteGrad(ParFiniteElementSpace *edge_fespace,
-                             ParFiniteElementSpace *vert_fespace);
-/// Compute the discrete curl matrix between the ND1 and RT0 spaces
-HypreParMatrix* DiscreteCurl(ParFiniteElementSpace *face_fespace,
-                             ParFiniteElementSpace *edge_fespace);
-                             */
-
-/// The Auxiliary-space Maxwell Solver in hypre
-/*
-class HypreAMS : public HypreSolver
-{
-private:
-   HYPRE_Solver ams;
-
-   /// Vertex coordinates
-   HypreParVector *x, *y, *z;
-   /// Discrete gradient matrix
-   HypreParMatrix *G;
-   /// Nedelec interpolation matrix and its components
-   HypreParMatrix *Pi, *Pix, *Piy, *Piz;
-
-public:
-   HypreAMS(HypreParMatrix &A, ParFiniteElementSpace *edge_fespace);
-
-   void SetPrintLevel(int print_lvl);
-
-   /// Set this option when solving a curl-curl problem with zero mass term
-   void SetSingularProblem() { HYPRE_AMSSetBetaPoissonMatrix(ams, NULL); }
-
-   /// The typecast to HYPRE_Solver returns the internal ams object
-   virtual operator HYPRE_Solver() const { return ams; }
-
-   virtual HYPRE_PtrToParSolverFcn SetupFcn() const
-   { return (HYPRE_PtrToParSolverFcn) HYPRE_AMSSetup; }
-   virtual HYPRE_PtrToParSolverFcn SolveFcn() const
-   { return (HYPRE_PtrToParSolverFcn) HYPRE_AMSSolve; }
-
-   virtual ~HypreAMS();
-};
-*/
-
-/// The Auxiliary-space Divergence Solver in hypre
-/*
-class HypreADS : public HypreSolver
-{
-private:
-   HYPRE_Solver ads;
-
-   /// Vertex coordinates
-   HypreParVector *x, *y, *z;
-   /// Discrete gradient matrix
-   HypreParMatrix *G;
-   /// Discrete curl matrix
-   HypreParMatrix *C;
-   /// Nedelec interpolation matrix and its components
-   HypreParMatrix *ND_Pi, *ND_Pix, *ND_Piy, *ND_Piz;
-   /// Raviart-Thomas interpolation matrix and its components
-   HypreParMatrix *RT_Pi, *RT_Pix, *RT_Piy, *RT_Piz;
-
-public:
-   HypreADS(HypreParMatrix &A, ParFiniteElementSpace *face_fespace);
-
-   void SetPrintLevel(int print_lvl);
-
-   /// The typecast to HYPRE_Solver returns the internal ads object
-   virtual operator HYPRE_Solver() const { return ads; }
-
-   virtual HYPRE_PtrToParSolverFcn SetupFcn() const
-   { return (HYPRE_PtrToParSolverFcn) HYPRE_ADSSetup; }
-   virtual HYPRE_PtrToParSolverFcn SolveFcn() const
-   { return (HYPRE_PtrToParSolverFcn) HYPRE_ADSSolve; }
-
-   virtual ~HypreADS();
-};
-*/
 
 /** LOBPCG eigenvalue solver in hypre
 
