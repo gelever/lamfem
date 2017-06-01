@@ -14,8 +14,8 @@
 
 // Data types for sparse matrix
 
-#include "../general/mem_alloc.hpp"
-#include "../general/table.hpp"
+#include "mem_alloc.hpp"
+//#include "../general/table.hpp"
 #include "densemat.hpp"
 #include <iostream>
 

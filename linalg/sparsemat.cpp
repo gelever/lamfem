@@ -12,8 +12,8 @@
 // Implementation of sparse matrix
 
 #include "linalg.hpp"
-#include "../general/table.hpp"
-#include "../general/sort_pairs.hpp"
+//#include "../general/table.hpp"
+#include "sort_pairs.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -49,6 +49,7 @@ SparseMatrix::SparseMatrix(int nrows, int ncols)
    NodesMem = new RowNodeAlloc;
 #endif
 }
+
 
 SparseMatrix::SparseMatrix(int *i, int *j, double *data, int m, int n)
    : AbstractSparseMatrix(m, n),

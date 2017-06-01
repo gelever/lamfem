@@ -10,7 +10,7 @@
 // Software Foundation) version 2.1 dated February 1999.
 
 
-#include "../general/array.hpp"
+#include "array.hpp"
 #include "operator.hpp"
 #include "blockvector.hpp"
 #include "blockoperator.hpp"

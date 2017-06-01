@@ -13,7 +13,7 @@
 #define MFEM_BLOCKOPERATOR
 
 #include "../config/config.hpp"
-#include "../general/array.hpp"
+#include "array.hpp"
 #include "operator.hpp"
 #include "blockvector.hpp"
 
