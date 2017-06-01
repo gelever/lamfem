@@ -14,26 +14,10 @@
 
 #include "config/config.hpp"
 
-#include "general/error.hpp"
-#include "general/array.hpp"
-#include "general/sets.hpp"
-#include "general/hash.hpp"
-#include "general/mem_alloc.hpp"
-#include "general/sort_pairs.hpp"
-#include "general/stable3d.hpp"
-#include "general/table.hpp"
-#include "general/tic_toc.hpp"
-#include "general/isockstream.hpp"
-#include "general/osockstream.hpp"
-#include "general/socketstream.hpp"
-#include "general/optparser.hpp"
-#include "general/gzstream.hpp"
 #ifdef MFEM_USE_MPI
-#include "general/communication.hpp"
+#include "linalg/communication.hpp"
 #endif
 
 #include "linalg/linalg.hpp"
-#include "mesh/mesh_headers.hpp"
-#include "fem/fem.hpp"
 
 #endif
