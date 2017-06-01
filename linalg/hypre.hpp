@@ -12,6 +12,8 @@
 #ifndef MFEM_HYPRE
 #define MFEM_HYPRE
 
+#include <map>
+#include "table.hpp"
 #include "../config/config.hpp"
 
 #ifdef MFEM_USE_MPI
@@ -40,7 +42,7 @@
 namespace mfem
 {
 
-class ParFiniteElementSpace;
+//class ParFiniteElementSpace;
 class HypreParMatrix;
 
 namespace internal
@@ -99,7 +101,7 @@ public:
    /// Creates vector wrapping y
    explicit HypreParVector(HYPRE_ParVector y);
    /// Create a true dof parallel vector on a given ParFiniteElementSpace
-   explicit HypreParVector(ParFiniteElementSpace *pfes);
+   //explicit HypreParVector(ParFiniteElementSpace *pfes);
 
    /// MPI communicator
    MPI_Comm GetComm() { return x->comm; }
@@ -782,10 +784,10 @@ private:
    Array<HYPRE_ParVector> rbms;
 
    /// Finite element space for elasticity problems, see SetElasticityOptions()
-   ParFiniteElementSpace *fespace;
+   //ParFiniteElementSpace *fespace;
 
    /// Recompute the rigid-body modes vectors (in the rbms array)
-   void RecomputeRBMs();
+   //void RecomputeRBMs();
 
    /// Default, generally robust, BoomerAMG options
    void SetDefaultOptions();
@@ -812,7 +814,7 @@ public:
        "Improving algebraic multigrid interpolation operators for linear
        elasticity problems", Baker, Kolev, Yang, NLAA 2009, DOI:10.1002/nla.688.
        As with SetSystemsOptions(), this solver assumes Ordering::byVDIM. */
-   void SetElasticityOptions(ParFiniteElementSpace *fespace);
+   //void SetElasticityOptions(ParFiniteElementSpace *fespace);
 
    void SetPrintLevel(int print_level)
    { HYPRE_BoomerAMGSetPrintLevel(amg_precond, print_level); }
@@ -828,14 +830,17 @@ public:
    virtual ~HypreBoomerAMG();
 };
 
+/*
 /// Compute the discrete gradient matrix between the nodal linear and ND1 spaces
 HypreParMatrix* DiscreteGrad(ParFiniteElementSpace *edge_fespace,
                              ParFiniteElementSpace *vert_fespace);
 /// Compute the discrete curl matrix between the ND1 and RT0 spaces
 HypreParMatrix* DiscreteCurl(ParFiniteElementSpace *face_fespace,
                              ParFiniteElementSpace *edge_fespace);
+                             */
 
 /// The Auxiliary-space Maxwell Solver in hypre
+/*
 class HypreAMS : public HypreSolver
 {
 private:
@@ -866,8 +871,10 @@ public:
 
    virtual ~HypreAMS();
 };
+*/
 
 /// The Auxiliary-space Divergence Solver in hypre
+/*
 class HypreADS : public HypreSolver
 {
 private:
@@ -899,6 +906,7 @@ public:
 
    virtual ~HypreADS();
 };
+*/
 
 /** LOBPCG eigenvalue solver in hypre
 

@@ -14,7 +14,7 @@
 #ifdef MFEM_USE_MPI
 
 #include "linalg.hpp"
-#include "../fem/fem.hpp"
+//#include "../fem/fem.hpp"
 
 #include <fstream>
 #include <iomanip>
@@ -111,6 +111,7 @@ HypreParVector::HypreParVector(HYPRE_ParVector y) : Vector()
    own_ParVector = 0;
 }
 
+/*
 HypreParVector::HypreParVector(ParFiniteElementSpace *pfes)
 {
    x = hypre_ParVectorCreate(pfes->GetComm(), pfes->GlobalTrueVSize(),
@@ -123,6 +124,7 @@ HypreParVector::HypreParVector(ParFiniteElementSpace *pfes)
    _SetDataAndSize_();
    own_ParVector = 1;
 }
+*/
 
 Vector * HypreParVector::GlobalVector() const
 {
@@ -2378,6 +2380,7 @@ void HypreBoomerAMG::ResetAMGPrecond()
    HYPRE_BoomerAMGGetPMaxElmts(amg_precond, &Pmax);
    HYPRE_BoomerAMGGetPrintLevel(amg_precond, &print_level);
    HYPRE_BoomerAMGGetNumFunctions(amg_precond, &dim);
+   /*
    if (nrbms) // elasticity solver options
    {
       nodal = hypre_ParAMGDataNodal(amg_data);
@@ -2388,6 +2391,7 @@ void HypreBoomerAMG::ResetAMGPrecond()
       smooth_interp_vectors = hypre_ParAMGSmoothInterpVectors(amg_data);
       interp_refine = hypre_ParAMGInterpRefine(amg_data);
    }
+   */
 
    HYPRE_BoomerAMGDestroy(amg_precond);
    HYPRE_BoomerAMGCreate(&amg_precond);
@@ -2404,6 +2408,7 @@ void HypreBoomerAMG::ResetAMGPrecond()
    HYPRE_BoomerAMGSetPMaxElmts(amg_precond, Pmax);
    HYPRE_BoomerAMGSetPrintLevel(amg_precond, print_level);
    HYPRE_BoomerAMGSetNumFunctions(amg_precond, dim);
+   /*
    if (nrbms)
    {
       HYPRE_BoomerAMGSetNodal(amg_precond, nodal);
@@ -2416,6 +2421,7 @@ void HypreBoomerAMG::ResetAMGPrecond()
       RecomputeRBMs();
       HYPRE_BoomerAMGSetInterpVectors(amg_precond, rbms.Size(), rbms.GetData());
    }
+   */
 }
 
 void HypreBoomerAMG::SetOperator(const Operator &op)
@@ -2458,6 +2464,7 @@ static void func_rzx(const Vector &x, Vector &y)
    y = 0.0; y(2) = x(0); y(0) = -x(2);
 }
 
+/*
 void HypreBoomerAMG::RecomputeRBMs()
 {
    int nrbms;
@@ -2516,7 +2523,9 @@ void HypreBoomerAMG::RecomputeRBMs()
       delete gf_rbms[i];
    }
 }
+*/
 
+/*
 void HypreBoomerAMG::SetElasticityOptions(ParFiniteElementSpace *fespace)
 {
    // Save the finite element space to support multiple calls to SetOperator()
@@ -2552,6 +2561,7 @@ void HypreBoomerAMG::SetElasticityOptions(ParFiniteElementSpace *fespace)
    RecomputeRBMs();
    HYPRE_BoomerAMGSetInterpVectors(amg_precond, rbms.Size(), rbms.GetData());
 }
+*/
 
 HypreBoomerAMG::~HypreBoomerAMG()
 {
@@ -2564,6 +2574,7 @@ HypreBoomerAMG::~HypreBoomerAMG()
 }
 
 
+/*
 HypreAMS::HypreAMS(HypreParMatrix &A, ParFiniteElementSpace *edge_fespace)
    : HypreSolver(&A)
 {
@@ -2762,7 +2773,9 @@ void HypreAMS::SetPrintLevel(int print_lvl)
 {
    HYPRE_AMSSetPrintLevel(ams, print_lvl);
 }
+*/  //HYPRE_AMS
 
+/*
 HypreADS::HypreADS(HypreParMatrix &A, ParFiniteElementSpace *face_fespace)
    : HypreSolver(&A)
 {
@@ -3007,6 +3020,7 @@ void HypreADS::SetPrintLevel(int print_lvl)
 {
    HYPRE_ADSSetPrintLevel(ads, print_lvl);
 }
+*/
 
 HypreLOBPCG::HypreMultiVector::HypreMultiVector(int n, HypreParVector & v,
                                                 mv_InterfaceInterpreter & interpreter)
