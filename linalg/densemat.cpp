@@ -2869,16 +2869,23 @@ void DenseMatrix::TestInversion()
         << ", cond_F = " << FNorm()*copy.FNorm() << endl;
 }
 
-DenseMatrix DenseMatrix::Mult(const DenseMatrix &b)
+DenseMatrix DenseMatrix::Mult(const DenseMatrix &b) const
 {
-   DenseMatrix C(height, b.width);
+   DenseMatrix c(height, b.width);
+
+   mfem::Mult(*this, b, c);
+
+   return c;
+}
+
+DenseMatrix DenseMatrix::MultTranspose(const DenseMatrix &b) const
+{
+   DenseMatrix C(width, b.width);
 
    for (int i = 0; i < width; ++i)
       for (int k = 0; k < b.width; ++k)
          for (int j = 0; j < b.height; ++j)
-         {
-            C(i, k) += (*this)(i, j) * b(j, k);
-         }
+            C(i, k) += (*this)(j, i) * b(j, k);
 
    return C;
 }

@@ -19,11 +19,13 @@ int main(int argc, char *argv[])
     DenseMatrix x =  d_inv.Mult(d);
 
     DenseMatrix four = d.Mult(d);
+    DenseMatrix four_also = d.MultTranspose(d);
 
     d.Print();
     x.Print();
 
     four.Print();
+    four_also.Print();
 
 
 }

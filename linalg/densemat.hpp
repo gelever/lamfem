@@ -121,7 +121,11 @@ public:
    /// Multiply a vector with the transpose matrix.
    virtual void MultTranspose(const Vector &x, Vector &y) const;
 
-   virtual DenseMatrix Mult(const DenseMatrix &b);
+   /// Multiply a dense matrix with the matrix.
+   virtual DenseMatrix Mult(const DenseMatrix &b) const;
+
+   /// Multiply a dense matrix with the matrix.
+   virtual DenseMatrix MultTranspose(const DenseMatrix &b) const;
 
    /// y += A.x
    void AddMult(const Vector &x, Vector &y) const;
@@ -328,7 +332,6 @@ void Add(double alpha, const DenseMatrix &A,
          double beta,  const DenseMatrix &B, DenseMatrix &C);
 
 /// Matrix matrix multiplication.  A = B * C.
-void Mult(const DenseMatrix &b, const DenseMatrix &c, DenseMatrix &a);
 void Mult(const DenseMatrix &b, const DenseMatrix &c, DenseMatrix &a);
 
 /// Matrix matrix multiplication.  A += B * C.
