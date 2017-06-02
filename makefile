@@ -80,18 +80,6 @@ $(if $(MFEM_REAL_DIR),,$(error Source directory "$(MFEM_DIR)" is not valid))
 SRC := $(if $(MFEM_REAL_DIR:$(CURDIR)=),$(MFEM_DIR)/,)
 $(if $(word 2,$(SRC)),$(error Spaces in SRC = "$(SRC)" are not supported))
 
-#EXAMPLE_SUBDIRS = sundials petsc
-#EXAMPLE_DIRS := examples $(addprefix examples/,$(EXAMPLE_SUBDIRS))
-#EXAMPLE_TEST_DIRS := examples
-
-#MINIAPP_SUBDIRS = common electromagnetics meshing performance tools
-#MINIAPP_DIRS := $(addprefix miniapps/,$(MINIAPP_SUBDIRS))
-#MINIAPP_TEST_DIRS := $(filter-out %/common,$(MINIAPP_DIRS))
-#MINIAPP_USE_COMMON := $(addprefix miniapps/,electromagnetics tools)
-
-#EM_DIRS = $(EXAMPLE_DIRS) $(MINIAPP_DIRS)
-#EM_TEST_DIRS = $(EXAMPLE_TEST_DIRS) $(MINIAPP_TEST_DIRS)
-
 # Use BUILD_DIR on the command line; set MFEM_BUILD_DIR before including this
 # makefile or config/config.mk from a separate $(BUILD_DIR).
 MFEM_BUILD_DIR ?= .
@@ -178,8 +166,8 @@ ifeq ($(MFEM_USE_OPENMP),YES)
 endif
 
 # List of MFEM dependencies, processed below
-MFEM_DEPENDENCIES = LIBUNWIND SIDRE LAPACK OPENMP SUNDIALS MESQUITE SUITESPARSE\
- SUPERLU GECKO GNUTLS NETCDF PETSC MPFR
+MFEM_DEPENDENCIES = LIBUNWIND LAPACK OPENMP SUNDIALS SUITESPARSE\
+ SUPERLU PETSC
 
 # Macro for adding dependencies
 define mfem_add_dependency
@@ -197,17 +185,12 @@ ifeq ($(MFEM_TIMER_TYPE),2)
    ALL_LIBS += $(POSIX_CLOCKS_LIB)
 endif
 
-# gzstream configuration
-ifeq ($(MFEM_USE_GZSTREAM),YES)
-   ALL_LIBS += -lz
-endif
-
 # List of all defines that may be enabled in config.hpp and config.mk:
 MFEM_DEFINES = MFEM_VERSION MFEM_USE_MPI MFEM_USE_METIS_5 MFEM_DEBUG\
- MFEM_USE_GZSTREAM MFEM_USE_LIBUNWIND MFEM_USE_LAPACK MFEM_THREAD_SAFE\
+ MFEM_USE_LIBUNWIND MFEM_USE_LAPACK MFEM_THREAD_SAFE\
  MFEM_USE_OPENMP MFEM_USE_MEMALLOC MFEM_TIMER_TYPE MFEM_USE_SUNDIALS\
- MFEM_USE_MESQUITE MFEM_USE_SUITESPARSE MFEM_USE_GECKO MFEM_USE_SUPERLU\
- MFEM_USE_GNUTLS MFEM_USE_NETCDF MFEM_USE_PETSC MFEM_USE_MPFR MFEM_USE_SIDRE
+ MFEM_USE_SUITESPARSE MFEM_USE_SUPERLU\
+ MFEM_USE_PETSC MFEM_USE_MPFR
 
 # List of makefile variables that will be written to config.mk:
 MFEM_CONFIG_VARS = MFEM_CXX MFEM_CPPFLAGS MFEM_CXXFLAGS MFEM_INC_DIR\
@@ -278,15 +261,6 @@ MFEM_BUILD_FLAGS = $(MFEM_CPPFLAGS) $(MFEM_CXXFLAGS) $(MFEM_TPLFLAGS)\
 $(OBJECT_FILES): $(BLD)%.o: $(SRC)%.cpp $(CONFIG_MK)
 	$(MFEM_CXX) $(MFEM_BUILD_FLAGS) -c $(<) -o $(@)
 
-all:	
-#all: examples miniapps
-
-#.PHONY: miniapps $(EM_DIRS)
-#miniapps: $(MINIAPP_DIRS)
-#$(MINIAPP_USE_COMMON): miniapps/common
-#$(EM_DIRS): lib
-	#$(MAKE) -C $(BLD)$(@)
-
 .PHONY: doc
 doc:
 	$(MAKE) -C $(BLD)$(@)
@@ -311,30 +285,8 @@ deps:
 	   $(DEP_CXX) $(MFEM_BUILD_FLAGS) -MM -MT $(BLD)$${i}.o $(SRC)$${i}.cpp\
 	      >> $(BLD)deps.mk; done
 
-check: lib
-	@printf "Quick-checking the MFEM library."
-	@printf " Use 'make test' for more extensive tests.\n"
-	@$(MAKE) -C $(BLD)examples \
-	$(if $(findstring YES,$(MFEM_USE_MPI)),ex1p-test-par,ex1-test-seq)
 
-test:
-	@echo "Testing the MFEM library. This may take a while..."
-	@echo "Building all examples and miniapps..."
-	@$(MAKE) all
-	@ERR=0; for dir in $(EM_TEST_DIRS); do \
-	   echo "Running tests in $${dir} ..."; \
-	   if ! $(MAKE) -j1 -C $(BLD)$${dir} test; then \
-	   ERR=1; fi; done; \
-	   if [ 0 -ne $${ERR} ]; then echo "Some tests failed."; exit 1; \
-	   else echo "All tests passed."; fi
-
-#ALL_CLEAN_SUBDIRS = $(addsuffix /clean,config $(EM_DIRS) doc)
-#.PHONY: $(ALL_CLEAN_SUBDIRS) miniapps/clean
-#miniapps/clean: $(addsuffix /clean,$(MINIAPP_DIRS))
-#$(ALL_CLEAN_SUBDIRS):
-	#$(MAKE) -C $(BLD)$(@D) $(@F)
-
-clean: $(addsuffix /clean,$(EM_DIRS))
+clean:	
 	rm -f $(addprefix $(BLD),*/*.o */*~ *~ libmfem.a deps.mk)
 
 distclean: clean config/clean doc/clean
@@ -401,7 +353,6 @@ status info:
 	$(info MFEM_USE_MPI         = $(MFEM_USE_MPI))
 	$(info MFEM_USE_METIS_5     = $(MFEM_USE_METIS_5))
 	$(info MFEM_DEBUG           = $(MFEM_DEBUG))
-	$(info MFEM_USE_GZSTREAM    = $(MFEM_USE_GZSTREAM))
 	$(info MFEM_USE_LIBUNWIND   = $(MFEM_USE_LIBUNWIND))
 	$(info MFEM_USE_LAPACK      = $(MFEM_USE_LAPACK))
 	$(info MFEM_THREAD_SAFE     = $(MFEM_THREAD_SAFE))
@@ -409,15 +360,10 @@ status info:
 	$(info MFEM_USE_MEMALLOC    = $(MFEM_USE_MEMALLOC))
 	$(info MFEM_TIMER_TYPE      = $(MFEM_TIMER_TYPE))
 	$(info MFEM_USE_SUNDIALS    = $(MFEM_USE_SUNDIALS))
-	$(info MFEM_USE_MESQUITE    = $(MFEM_USE_MESQUITE))
 	$(info MFEM_USE_SUITESPARSE = $(MFEM_USE_SUITESPARSE))
 	$(info MFEM_USE_SUPERLU     = $(MFEM_USE_SUPERLU))
-	$(info MFEM_USE_GECKO       = $(MFEM_USE_GECKO))
-	$(info MFEM_USE_GNUTLS      = $(MFEM_USE_GNUTLS))
-	$(info MFEM_USE_NETCDF      = $(MFEM_USE_NETCDF))
 	$(info MFEM_USE_PETSC       = $(MFEM_USE_PETSC))
 	$(info MFEM_USE_MPFR        = $(MFEM_USE_MPFR))
-	$(info MFEM_USE_SIDRE       = $(MFEM_USE_SIDRE))
 	$(info MFEM_CXX             = $(value MFEM_CXX))
 	$(info MFEM_CPPFLAGS        = $(value MFEM_CPPFLAGS))
 	$(info MFEM_CXXFLAGS        = $(value MFEM_CXXFLAGS))
