@@ -596,12 +596,12 @@ int DSTable::Push_(int r, int c)
       }
    }
    /*
-#ifdef MFEM_USE_MEMALLOC
+   #ifdef MFEM_USE_MEMALLOC
    n = NodesMem.Alloc ();
-#else
-*/
+   #else
+   */
    n = new Node;
-//#endif
+   //#endif
    n->Column = c;
    n->Index  = NumEntries;
    n->Prev   = Rows[r];

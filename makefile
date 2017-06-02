@@ -80,18 +80,6 @@ $(if $(MFEM_REAL_DIR),,$(error Source directory "$(MFEM_DIR)" is not valid))
 SRC := $(if $(MFEM_REAL_DIR:$(CURDIR)=),$(MFEM_DIR)/,)
 $(if $(word 2,$(SRC)),$(error Spaces in SRC = "$(SRC)" are not supported))
 
-#EXAMPLE_SUBDIRS = sundials petsc
-#EXAMPLE_DIRS := examples $(addprefix examples/,$(EXAMPLE_SUBDIRS))
-#EXAMPLE_TEST_DIRS := examples
-
-#MINIAPP_SUBDIRS = common electromagnetics meshing performance tools
-#MINIAPP_DIRS := $(addprefix miniapps/,$(MINIAPP_SUBDIRS))
-#MINIAPP_TEST_DIRS := $(filter-out %/common,$(MINIAPP_DIRS))
-#MINIAPP_USE_COMMON := $(addprefix miniapps/,electromagnetics tools)
-
-#EM_DIRS = $(EXAMPLE_DIRS) $(MINIAPP_DIRS)
-#EM_TEST_DIRS = $(EXAMPLE_TEST_DIRS) $(MINIAPP_TEST_DIRS)
-
 # Use BUILD_DIR on the command line; set MFEM_BUILD_DIR before including this
 # makefile or config/config.mk from a separate $(BUILD_DIR).
 MFEM_BUILD_DIR ?= .
@@ -252,7 +240,7 @@ ifneq (,$(filter install,$(MAKECMDGOALS)))
 endif
 
 # Source dirs in logical order
-DIRS = general linalg mesh fem
+DIRS = linalg
 SOURCE_FILES = $(foreach dir,$(DIRS),$(wildcard $(SRC)$(dir)/*.cpp))
 RELSRC_FILES = $(patsubst $(SRC)%,%,$(SOURCE_FILES))
 OBJECT_FILES = $(patsubst $(SRC)%,$(BLD)%,$(SOURCE_FILES:.cpp=.o))
@@ -279,13 +267,6 @@ $(OBJECT_FILES): $(BLD)%.o: $(SRC)%.cpp $(CONFIG_MK)
 	$(MFEM_CXX) $(MFEM_BUILD_FLAGS) -c $(<) -o $(@)
 
 all:	
-#all: examples miniapps
-
-#.PHONY: miniapps $(EM_DIRS)
-#miniapps: $(MINIAPP_DIRS)
-#$(MINIAPP_USE_COMMON): miniapps/common
-#$(EM_DIRS): lib
-	#$(MAKE) -C $(BLD)$(@)
 
 .PHONY: doc
 doc:

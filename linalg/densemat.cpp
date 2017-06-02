@@ -1657,8 +1657,9 @@ inline int Reduce3S(
 #ifdef MFEM_DEBUG
       // compute the offdiagonal entries on the first row/column of B which
       // should be zero:
-      s = d12 - v1*w2 - v2*w1;  // b12 = 0
-      s = d13 - v1*w3 - v3*w1;  // b13 = 0
+      //s = d12 - v1*w2 - v2*w1;  // b12 = 0
+      //s = d13 - v1*w3 - v3*w1;  // b13 = 0
+      //TODO(gelever1): actually check these assert?
 #endif
    }
 
@@ -2868,6 +2869,20 @@ void DenseMatrix::TestInversion()
         << ", cond_F = " << FNorm()*copy.FNorm() << endl;
 }
 
+DenseMatrix DenseMatrix::Mult(const DenseMatrix &b)
+{
+   DenseMatrix C(height, b.width);
+
+   for (int i = 0; i < width; ++i)
+      for (int k = 0; k < b.width; ++k)
+         for (int j = 0; j < b.height; ++j)
+         {
+            C(i, k) += (*this)(i, j) * b(j, k);
+         }
+
+   return C;
+}
+
 DenseMatrix::~DenseMatrix()
 {
    if (capacity > 0)
@@ -2875,8 +2890,6 @@ DenseMatrix::~DenseMatrix()
       delete [] data;
    }
 }
-
-
 
 void Add(const DenseMatrix &A, const DenseMatrix &B,
          double alpha, DenseMatrix &C)
@@ -4110,6 +4123,13 @@ void DenseMatrixInverse::Mult(const DenseMatrix &B, DenseMatrix &X) const
 {
    X = B;
    lu.Solve(width, X.Width(), X.Data());
+}
+
+DenseMatrix DenseMatrixInverse::Mult(const DenseMatrix &B) const
+{
+   DenseMatrix X(B);
+   lu.Solve(width, X.Width(), X.Data());
+   return X;
 }
 
 void DenseMatrixInverse::TestInversion()

@@ -216,10 +216,10 @@ private:
    int  NumRows, NumEntries;
    Node **Rows;
    /*
-#ifdef MFEM_USE_MEMALLOC
+   #ifdef MFEM_USE_MEMALLOC
    MemAlloc <Node, 1024> NodesMem;
-#endif
-*/
+   #endif
+   */
 
    int Push_(int r, int c);
    int Index(int r, int c) const;

@@ -121,6 +121,8 @@ public:
    /// Multiply a vector with the transpose matrix.
    virtual void MultTranspose(const Vector &x, Vector &y) const;
 
+   virtual DenseMatrix Mult(const DenseMatrix &b);
+
    /// y += A.x
    void AddMult(const Vector &x, Vector &y) const;
 
@@ -327,6 +329,7 @@ void Add(double alpha, const DenseMatrix &A,
 
 /// Matrix matrix multiplication.  A = B * C.
 void Mult(const DenseMatrix &b, const DenseMatrix &c, DenseMatrix &a);
+void Mult(const DenseMatrix &b, const DenseMatrix &c, DenseMatrix &a);
 
 /// Matrix matrix multiplication.  A += B * C.
 void AddMult(const DenseMatrix &b, const DenseMatrix &c, DenseMatrix &a);
@@ -531,6 +534,9 @@ public:
 
    /// Multiply the inverse matrix by another matrix: X = A^{-1} B.
    void Mult(const DenseMatrix &B, DenseMatrix &X) const;
+
+   /// Multiply the inverse matrix by another matrix: X = A^{-1} B.
+   DenseMatrix Mult(const DenseMatrix &B) const;
 
    /// Compute and return the inverse matrix in Ainv.
    void GetInverseMatrix(DenseMatrix &Ainv) const
