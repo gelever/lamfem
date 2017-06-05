@@ -12,6 +12,8 @@
 #ifndef MFEM_DENSEMAT
 #define MFEM_DENSEMAT
 
+#include <vector>
+
 #include "../config/config.hpp"
 #include "matrix.hpp"
 
