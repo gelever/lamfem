@@ -23,23 +23,13 @@ namespace mfem
 /// Data type dense matrix using column-major storage
 class DenseMatrix : public Matrix
 {
-    friend class DenseTensor;
-    friend class DenseMatrixInverse;
-
-private:
-    //double *data;
-    std::vector<double> data;
-    int capacity; // zero or negative capacity means we do not own the data.
-
-    void Eigensystem(Vector& ev, DenseMatrix* evect = NULL);
 
 public:
-    /** Default constructor for DenseMatrix.
-        Sets data = NULL and height = width = 0. */
-    DenseMatrix();
+    /// Default constructor for DenseMatrix.
+    DenseMatrix() : Matrix(0), data(0) { };
 
     /// Copy constructor
-    DenseMatrix(const DenseMatrix&);
+    DenseMatrix(const DenseMatrix& other);
 
     /// Creates square matrix of size s.
     explicit DenseMatrix(int s);
@@ -73,7 +63,6 @@ public:
         data = std::vector<double> (d, d + h * w);
         height = h;
         width = w;
-        capacity = -h * w;
     }
 
     /// Change the data array and the size of the DenseMatrix.
@@ -84,13 +73,6 @@ public:
     {
         mfem_error("Don't use this");
         UseExternalData(d, h, w);
-        /*
-        if (OwnsData())
-        {
-           delete [] data;
-        }
-        UseExternalData(d, h, w);
-        */
     }
 
     /** Clear the data array and the dimensions of the DenseMatrix. This method
@@ -100,7 +82,6 @@ public:
         data.resize(0);
         height = 0;
         width = 0;
-        capacity = 0;
     }
 
     /// Delete the matrix data array (if owned) and reset the matrix state.
@@ -128,7 +109,9 @@ public:
     /// Returns the matrix data array.
     inline const double* GetData() const { return data.data(); }
 
-    inline bool OwnsData() const { return (capacity > 0); }
+    inline bool OwnsData() const {
+		return true;
+	}
 
     /// Returns reference to a_{ij}.
     inline double& operator()(int i, int j);
@@ -363,10 +346,19 @@ public:
     /// Invert and print the numerical conditioning of the inversion.
     void TestInversion();
 
-    long MemoryUsage() const { return std::abs(capacity) * sizeof(double); }
+    long MemoryUsage() const
+	{
+		return data.size() * sizeof(double);
+	}
 
     /// Destroys dense matrix.
     virtual ~DenseMatrix() = default;
+
+private:
+    std::vector<double> data;
+
+    void Eigensystem(Vector& ev, DenseMatrix* evect = NULL);
+
 };
 
 /// C = A + alpha*B
@@ -676,11 +668,8 @@ public:
 
     DenseTensor(int i, int j, int k)
         : tdata(k, DenseMatrix(i, j)), nk(k), height_(i), width_(j)
-        //: Mk(NULL, i, j)
     {
-        //nk = k;
-        //tdata = new double[i*j*k];
-        //own_data = true;
+
     }
 
     int SizeI() const { return height_; }
@@ -696,8 +685,6 @@ public:
         nk = k;
 
         tdata = std::vector<DenseMatrix> (k, DenseMatrix(height_, width_));
-        //tdata = new double[i*j*k];
-        //own_data = true;
     }
 
     void UseExternalData(double* ext_data, int i, int j, int k)

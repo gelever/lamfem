@@ -33,14 +33,8 @@ namespace mfem
 
 using namespace std;
 
-DenseMatrix::DenseMatrix() : Matrix(0),
-    data(0), capacity(0)
-{
-
-}
-
-DenseMatrix::DenseMatrix(const DenseMatrix& m) : Matrix(m.height, m.width),
-    data(m.data), capacity(m.capacity)
+DenseMatrix::DenseMatrix(const DenseMatrix& other) : Matrix(other.height, other.width),
+    data(other.data)
 {
 
 }
@@ -51,7 +45,7 @@ DenseMatrix::DenseMatrix(int s) : DenseMatrix(s, s)
 }
 
 DenseMatrix::DenseMatrix(int m, int n) : Matrix(m, n),
-    capacity(m* n), data(m* n, 0)
+    data(m* n, 0)
 {
     MFEM_ASSERT(m >= 0 && n >= 0,
                 "invalid DenseMatrix size: " << m << " x " << n);
@@ -64,8 +58,8 @@ DenseMatrix::DenseMatrix(const DenseMatrix& mat, char ch)
     {
         for (int j = 0; j < width; j++)
         { 
-		(*this)(i, j) = mat(j, i);
-	}
+			(*this)(i, j) = mat(j, i);
+		}
     }
 }
 
@@ -74,27 +68,10 @@ void DenseMatrix::SetSize(int h, int w)
     MFEM_ASSERT(h >= 0 && w >= 0,
                 "invalid DenseMatrix size: " << h << " x " << w);
 
-    if (Height() == h && Width() == w)
-    {
-        return;
-    }
-
     height = h;
     width = w;
-    const int hw = h * w;
-    data.resize(hw, 0.0);
-    capacity = hw;
-    /*
-    if (hw > std::abs(capacity))
-    {
-       if (capacity > 0)
-       {
-          delete [] data;
-       }
-       capacity = hw;
-       data = new double[hw](); // init with zeroes
-    }
-    */
+
+    data.resize(height * width, 0.0);
 }
 
 double& DenseMatrix::Elem(int i, int j)
@@ -278,7 +255,7 @@ void DenseMatrix::LeftScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] *= s(i);
+			data[i + j * height] *= s(i);
         }
     }
 }
@@ -290,7 +267,7 @@ void DenseMatrix::InvLeftScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] /= s(i);
+			data[i + j * height] /= s(i);
         }
     }
 }
@@ -304,7 +281,7 @@ void DenseMatrix::RightScaling(const Vector& s)
 
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] *= sj;
+			data[i + j * height] *= sj;
         }
     }
 }
@@ -318,7 +295,7 @@ void DenseMatrix::InvRightScaling(const Vector& s)
 
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] /= sj;
+			data[i + j * height] /= sj;
         }
     }
 }
@@ -342,7 +319,7 @@ void DenseMatrix::SymmetricScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] *= ss[i] * ss[j];
+			data[i + j * height] *= ss[i] * ss[j];
         }
     }
 }
@@ -366,7 +343,7 @@ void DenseMatrix::InvSymmetricScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-	    data[i + j * height] *= ss[i] * ss[j];
+			data[i + j * height] *= ss[i] * ss[j];
         }
     }
 }
@@ -461,7 +438,6 @@ double DenseMatrix::Weight() const
 {
     if (Height() == Width())
     {
-        // return fabs(Det());
         return Det();
     }
     else if ((Height() == 2) && (Width() == 1))
@@ -508,7 +484,6 @@ void swap(DenseMatrix& lhs, DenseMatrix& rhs)
     std::swap(lhs.width, rhs.width);
     std::swap(lhs.height, rhs.height);
     std::swap(lhs.data, rhs.data);
-    std::swap(lhs.capacity, rhs.capacity);
 }
 
 DenseMatrix& DenseMatrix::operator=(const std::vector<double>& d)
@@ -4452,7 +4427,7 @@ DenseMatrixInverse::DenseMatrixInverse(const DenseMatrix* mat)
 void DenseMatrixInverse::Factor()
 {
     MFEM_ASSERT(a, "DenseMatrix is not given");
-    const double* adata = a->data.data();
+    const double* adata = a->GetData();
 
     for (int i = 0, s = width * width; i < s; i++)
     {
@@ -4464,11 +4439,11 @@ void DenseMatrixInverse::Factor()
 
 void DenseMatrixInverse::Factor(const DenseMatrix& mat)
 {
-    MFEM_VERIFY(mat.height == mat.width, "DenseMatrix is not square!");
+    MFEM_VERIFY(mat.Height() == mat.Width(), "DenseMatrix is not square!");
 
-    if (width != mat.width)
+    if (width != mat.Width())
     {
-        height = width = mat.width;
+        height = width = mat.Width();
         delete [] lu.data;
         lu.data = new double[width * width];
         delete [] lu.ipiv;
