@@ -2635,10 +2635,12 @@ void DenseMatrix::CopyRows(const DenseMatrix& A, int row1, int row2)
     SetSize(row2 - row1 + 1, A.Width());
 
     for (int j = 0; j < Width(); j++)
+    {
         for (int i = row1; i <= row2; i++)
         {
             (*this)(i - row1, j) = A(i, j);
         }
+    }
 }
 
 void DenseMatrix::CopyCols(const DenseMatrix& A, int col1, int col2)
@@ -2646,54 +2648,56 @@ void DenseMatrix::CopyCols(const DenseMatrix& A, int col1, int col2)
     SetSize(A.Height(), col2 - col1 + 1);
 
     for (int j = col1; j <= col2; j++)
+    {
         for (int i = 0; i < Height(); i++)
         {
             (*this)(i, j - col1) = A(i, j);
         }
+    }
 }
 
 void DenseMatrix::CopyMN(const DenseMatrix& A, int m, int n, int Aro, int Aco)
 {
-    int i, j;
-
     SetSize(m, n);
 
-    for (j = 0; j < n; j++)
-        for (i = 0; i < m; i++)
+    for (int j = 0; j < n; j++)
+    {
+        for (int i = 0; i < m; i++)
         {
             (*this)(i, j) = A(Aro + i, Aco + j);
         }
+    }
 }
 
 void DenseMatrix::CopyMN(const DenseMatrix& A, int row_offset, int col_offset)
 {
-    int i, j;
     const double* v = A.data.data();
 
-    for (j = 0; j < A.Width(); j++)
-        for (i = 0; i < A.Height(); i++)
+    for (int j = 0; j < A.Width(); j++)
+    {
+        for (int i = 0; i < A.Height(); i++)
         {
             (*this)(row_offset + i, col_offset + j) = * (v++);
         }
+    }
 }
 
 void DenseMatrix::CopyMNt(const DenseMatrix& A, int row_offset, int col_offset)
 {
-    int i, j;
     const double* v = A.data.data();
 
-    for (i = 0; i < A.Width(); i++)
-        for (j = 0; j < A.Height(); j++)
+    for (int i = 0; i < A.Width(); i++)
+    {
+        for (int j = 0; j < A.Height(); j++)
         {
             (*this)(row_offset + i, col_offset + j) = * (v++);
         }
+    }
 }
 
 void DenseMatrix::CopyMN(const DenseMatrix& A, int m, int n, int Aro, int Aco,
                          int row_offset, int col_offset)
 {
-    int i, j;
-
     MFEM_VERIFY(row_offset + m <= this->Height()
                 && col_offset + n <= this->Width(),
                 "this DenseMatrix is too small to accomodate the submatrix.  "
@@ -2714,23 +2718,27 @@ void DenseMatrix::CopyMN(const DenseMatrix& A, int m, int n, int Aro, int Aco,
                 << ", A.Width() = " << A.Width()
                );
 
-    for (j = 0; j < n; j++)
-        for (i = 0; i < m; i++)
+    for (int j = 0; j < n; j++)
+    {
+        for (int i = 0; i < m; i++)
         {
             (*this)(row_offset + i, col_offset + j) = A(Aro + i, Aco + j);
         }
+    }
 }
 
 void DenseMatrix::CopyMNDiag(double c, int n, int row_offset, int col_offset)
 {
-    int i, j;
-
-    for (i = 0; i < n; i++)
-        for (j = i + 1; j < n; j++)
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+	{
             (*this)(row_offset + i, col_offset + j) =
                 (*this)(row_offset + j, col_offset + i) = 0.0;
+	}
+    }
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         (*this)(row_offset + i, col_offset + i) = c;
     }
@@ -2739,14 +2747,16 @@ void DenseMatrix::CopyMNDiag(double c, int n, int row_offset, int col_offset)
 void DenseMatrix::CopyMNDiag(double* diag, int n, int row_offset,
                              int col_offset)
 {
-    int i, j;
-
-    for (i = 0; i < n; i++)
-        for (j = i + 1; j < n; j++)
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+	{
             (*this)(row_offset + i, col_offset + j) =
                 (*this)(row_offset + j, col_offset + i) = 0.0;
+	}
+    }
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         (*this)(row_offset + i, col_offset + i) = diag[i];
     }
@@ -2756,9 +2766,10 @@ void DenseMatrix::CopyExceptMN(const DenseMatrix& A, int m, int n)
 {
     SetSize(A.Width() - 1, A.Height() - 1);
 
-    int i, j, i_off = 0, j_off = 0;
+    int i_off = 0;
+    int j_off = 0;
 
-    for (j = 0; j < A.Width(); j++)
+    for (int j = 0; j < A.Width(); j++)
     {
         if (j == n)
         {
@@ -2766,7 +2777,7 @@ void DenseMatrix::CopyExceptMN(const DenseMatrix& A, int m, int n)
             continue;
         }
 
-        for (i = 0; i < A.Height(); i++)
+        for (int i = 0; i < A.Height(); i++)
         {
             if (i == m)
             {
@@ -2783,12 +2794,9 @@ void DenseMatrix::CopyExceptMN(const DenseMatrix& A, int m, int n)
 
 void DenseMatrix::AddMatrix(DenseMatrix& A, int ro, int co)
 {
-    int h, ah, aw;
-    double* p, *ap;
-
-    h  = Height();
-    ah = A.Height();
-    aw = A.Width();
+    const int h  = Height();
+    const int ah = A.Height();
+    const int aw = A.Width();
 
 #ifdef MFEM_DEBUG
 
@@ -2799,8 +2807,8 @@ void DenseMatrix::AddMatrix(DenseMatrix& A, int ro, int co)
 
 #endif
 
-    p  = data.data() + ro + co * h;
-    ap = A.data.data();
+    double * p = data.data() + ro + co * h;
+    double * ap = A.data.data();
 
     for (int c = 0; c < aw; c++)
     {
@@ -2816,12 +2824,9 @@ void DenseMatrix::AddMatrix(DenseMatrix& A, int ro, int co)
 
 void DenseMatrix::AddMatrix(double a, DenseMatrix& A, int ro, int co)
 {
-    int h, ah, aw;
-    double* p, *ap;
-
-    h  = Height();
-    ah = A.Height();
-    aw = A.Width();
+    const int h  = Height();
+    const int ah = A.Height();
+    const int aw = A.Width();
 
 #ifdef MFEM_DEBUG
 
@@ -2832,8 +2837,8 @@ void DenseMatrix::AddMatrix(double a, DenseMatrix& A, int ro, int co)
 
 #endif
 
-    p  = data.data() + ro + co * h;
-    ap = A.data.data();
+    double * p = data.data() + ro + co * h;
+    double * ap = A.data.data();
 
     for (int c = 0; c < aw; c++)
     {
@@ -2849,10 +2854,10 @@ void DenseMatrix::AddMatrix(double a, DenseMatrix& A, int ro, int co)
 
 void DenseMatrix::AddToVector(int offset, Vector& v) const
 {
-    int i, n = height * width;
+    const int n = height * width;
     double* vdata = v.GetData() + offset;
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         vdata[i] += data[i];
     }
@@ -2860,10 +2865,10 @@ void DenseMatrix::AddToVector(int offset, Vector& v) const
 
 void DenseMatrix::GetFromVector(int offset, const Vector& v)
 {
-    int i, n = height * width;
+    const int n = height * width;
     const double* vdata = v.GetData() + offset;
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         data[i] = vdata[i];
     }
@@ -2871,7 +2876,7 @@ void DenseMatrix::GetFromVector(int offset, const Vector& v)
 
 void DenseMatrix::AdjustDofDirection(Array<int>& dofs)
 {
-    int n = Height();
+    const int n = Height();
 
 #ifdef MFEM_DEBUG
 
@@ -3086,21 +3091,17 @@ DenseMatrix DenseMatrix::MultTranspose(const DenseMatrix& b) const
     DenseMatrix C(width, b.width);
 
     for (int i = 0; i < width; ++i)
+    {
         for (int k = 0; k < b.width; ++k)
+	{
             for (int j = 0; j < b.height; ++j)
-            { C(i, k) += (*this)(j, i) * b(j, k); }
+            { 
+		    C(i, k) += (*this)(j, i) * b(j, k);
+	    }
+	}
+    }
 
     return C;
-}
-
-DenseMatrix::~DenseMatrix()
-{
-    /*
-    if (capacity > 0)
-    {
-      delete [] data;
-    }
-    */
 }
 
 void Add(const DenseMatrix& A, const DenseMatrix& B,

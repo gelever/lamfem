@@ -366,7 +366,7 @@ public:
     long MemoryUsage() const { return std::abs(capacity) * sizeof(double); }
 
     /// Destroys dense matrix.
-    virtual ~DenseMatrix();
+    virtual ~DenseMatrix() = default;
 };
 
 /// C = A + alpha*B
