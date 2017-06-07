@@ -33,9 +33,8 @@ namespace mfem
 
 using namespace std;
 
-DenseMatrix::DenseMatrix(const DenseMatrix& other) : Matrix(other.height,
-                                                                other.width),
-    data(other.data)
+DenseMatrix::DenseMatrix(const DenseMatrix& other)
+    : Matrix(other.height, other.width), data(other.data)
 {
 
 }
