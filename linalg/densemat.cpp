@@ -617,25 +617,25 @@ void DenseMatrix::Invert()
 #endif
 
 #ifdef MFEM_USE_LAPACK
-    std::vector<double> ipiv(width);
+    std::vector<int> ipiv(width);
     int lwork = -1;
     double qwork;
     std::vector<double> work;
     int info;
 
-    dgetrf_(&width, &width, data, &width, ipiv.data(), &info);
+    dgetrf_(&width, &width, data.data(), &width, ipiv.data(), &info);
 
     if (info)
     {
         mfem_error("DenseMatrix::Invert() : Error in DGETRF");
     }
 
-    dgetri_(&width, data, &width, ipiv.data(), &qwork, &lwork, &info);
+    dgetri_(&width, data.data(), &width, ipiv.data(), &qwork, &lwork, &info);
 
     lwork = (int) qwork;
     work.resize(lwork);
 
-    dgetri_(&width, data, &width, ipiv.data(), work.data(), &lwork, &info);
+    dgetri_(&width, data.data(), &width, ipiv.data(), work.data(), &lwork, &info);
 
     if (info)
     {
@@ -1049,31 +1049,28 @@ void DenseMatrix::Eigensystem(Vector& ev, DenseMatrix* evect)
 void DenseMatrix::SingularValues(Vector& sv) const
 {
 #ifdef MFEM_USE_LAPACK
-    DenseMatrix copy_of_this = *this;
-    char        jobu         = 'N';
-    char        jobvt        = 'N';
-    int         m            = Height();
-    int         n            = Width();
-    double*      a           = copy_of_this.data;
+    char jobu = 'N';
+    char jobvt = 'N';
+    int m = Height();
+    int n = Width();
+    std::vector<double> a = data;
     sv.SetSize(min(m, n));
-    double*      s           = sv;
-    double*      u           = NULL;
-    double*      vt          = NULL;
-    double*      work        = NULL;
-    int         lwork        = -1;
-    int         info;
-    double      qwork;
+    double* s = sv;
+    double* u = nullptr;
+    double* vt = nullptr;
+    std::vector<double> work;
+    int lwork = -1;
+    int info;
+    double qwork;
 
-    dgesvd_(&jobu, &jobvt, &m, &n, a, &m,
+    dgesvd_(&jobu, &jobvt, &m, &n, a.data(), &m,
             s, u, &m, vt, &n, &qwork, &lwork, &info);
 
     lwork = (int) qwork;
-    work = new double[lwork];
+    work.resize(lwork);
 
-    dgesvd_(&jobu, &jobvt, &m, &n, a, &m,
-            s, u, &m, vt, &n, work, &lwork, &info);
-
-    delete [] work;
+    dgesvd_(&jobu, &jobvt, &m, &n, a.data(), &m,
+            s, u, &m, vt, &n, work.data(), &lwork, &info);
 
     if (info)
     {
@@ -3127,8 +3124,8 @@ void Add(double alpha, const DenseMatrix& A,
 
 #ifdef MFEM_USE_LAPACK
 extern "C" void
-dgemm_(char*, char*, int*, int*, int*, double*, double*,
-       int*, double*, int*, double*, double*, int*);
+dgemm_(char*, char*, int*, int*, int*, double*, const double*,
+       int*, const double*, int*, double*, double*, int*);
 #endif
 
 void Mult(const DenseMatrix& b, const DenseMatrix& c, DenseMatrix& a)
