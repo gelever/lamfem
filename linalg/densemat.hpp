@@ -316,10 +316,10 @@ public:
     /// Copy All rows and columns except m and n from A
     void CopyExceptMN(const DenseMatrix& A, int m, int n);
 
-    /// Perform (ro+i,co+j)+=A(i,j) for 0<=i<A.Height, 0<=j<A.Width
-    void AddMatrix(DenseMatrix& A, int ro, int co);
+    /// Perform (row+i,col+j)+=A(i,j) for 0<=i<A.Height, 0<=j<A.Width
+    void AddMatrix(DenseMatrix& A, int row, int col);
     /// Perform (ro+i,co+j)+=a*A(i,j) for 0<=i<A.Height, 0<=j<A.Width
-    void AddMatrix(double a, DenseMatrix& A, int ro, int co);
+    void AddMatrix(double a, DenseMatrix& A, int row, int col);
 
     /// Add the matrix 'data' to the Vector 'v' at the given 'offset'
     void AddToVector(int offset, Vector& v) const;
