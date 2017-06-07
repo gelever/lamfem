@@ -109,9 +109,10 @@ public:
     /// Returns the matrix data array.
     inline const double* GetData() const { return data.data(); }
 
-    inline bool OwnsData() const {
-		return true;
-	}
+    inline bool OwnsData() const
+    {
+        return true;
+    }
 
     /// Returns reference to a_{ij}.
     inline double& operator()(int i, int j);
@@ -347,9 +348,9 @@ public:
     void TestInversion();
 
     long MemoryUsage() const
-	{
-		return data.size() * sizeof(double);
-	}
+    {
+        return data.size() * sizeof(double);
+    }
 
     /// Destroys dense matrix.
     virtual ~DenseMatrix() = default;

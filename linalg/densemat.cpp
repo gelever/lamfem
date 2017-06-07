@@ -33,7 +33,8 @@ namespace mfem
 
 using namespace std;
 
-DenseMatrix::DenseMatrix(const DenseMatrix& other) : Matrix(other.height, other.width),
+DenseMatrix::DenseMatrix(const DenseMatrix& other) : Matrix(other.height,
+                                                                other.width),
     data(other.data)
 {
 
@@ -45,21 +46,21 @@ DenseMatrix::DenseMatrix(int s) : DenseMatrix(s, s)
 }
 
 DenseMatrix::DenseMatrix(int m, int n) : Matrix(m, n),
-    data(m* n, 0)
+    data(m * n, 0)
 {
     MFEM_ASSERT(m >= 0 && n >= 0,
                 "invalid DenseMatrix size: " << m << " x " << n);
 }
 
 DenseMatrix::DenseMatrix(const DenseMatrix& mat, char ch)
-    : Matrix(mat.width, mat.height), data(mat.height* mat.width, 0)
+    : Matrix(mat.width, mat.height), data(mat.height * mat.width, 0)
 {
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
-        { 
-			(*this)(i, j) = mat(j, i);
-		}
+        {
+            (*this)(i, j) = mat(j, i);
+        }
     }
 }
 
@@ -255,7 +256,7 @@ void DenseMatrix::LeftScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] *= s(i);
+            data[i + j * height] *= s(i);
         }
     }
 }
@@ -267,7 +268,7 @@ void DenseMatrix::InvLeftScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] /= s(i);
+            data[i + j * height] /= s(i);
         }
     }
 }
@@ -281,7 +282,7 @@ void DenseMatrix::RightScaling(const Vector& s)
 
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] *= sj;
+            data[i + j * height] *= sj;
         }
     }
 }
@@ -295,7 +296,7 @@ void DenseMatrix::InvRightScaling(const Vector& s)
 
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] /= sj;
+            data[i + j * height] /= sj;
         }
     }
 }
@@ -319,7 +320,7 @@ void DenseMatrix::SymmetricScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] *= ss[i] * ss[j];
+            data[i + j * height] *= ss[i] * ss[j];
         }
     }
 }
@@ -343,7 +344,7 @@ void DenseMatrix::InvSymmetricScaling(const Vector& s)
     {
         for (int i = 0; i < height; ++i)
         {
-			data[i + j * height] *= ss[i] * ss[j];
+            data[i + j * height] *= ss[i] * ss[j];
         }
     }
 }
@@ -491,7 +492,7 @@ DenseMatrix& DenseMatrix::operator=(const std::vector<double>& d)
     MFEM_ASSERT(d.size() == data.size(), "DenseMatrix set data size mismatch");
 
     data = d;
-    
+
     return *this;
 }
 
@@ -544,7 +545,7 @@ DenseMatrix& DenseMatrix::operator-=(const DenseMatrix& m)
 
 DenseMatrix& DenseMatrix::operator*= (double c)
 {
-    for (double & d : data)
+    for (double& d : data)
     {
         d *= c;
     }
@@ -626,7 +627,8 @@ void DenseMatrix::Invert()
         int a = fabs((*this)(c, c));
         int i = c;
 
-	int b = 0;
+        int b = 0;
+
         for (int j = c + 1; j < n; j++)
         {
             b = fabs((*this)(j, c));
@@ -647,7 +649,7 @@ void DenseMatrix::Invert()
 
         for (int j = 0; j < n; j++)
         {
-	    std::swap((*this)(c, j), (*this)(i, j));
+            std::swap((*this)(c, j), (*this)(i, j));
         }
 
         (*this)(c, c) = 1.0 / (*this)(c, c);
@@ -700,7 +702,7 @@ void DenseMatrix::Invert()
 
         for (int i = 0; i < n; i++)
         {
-	    std::swap((*this)(i, c), (*this)(i, j));
+            std::swap((*this)(i, c), (*this)(i, j));
         }
     }
 
@@ -724,9 +726,9 @@ void DenseMatrix::Norm2(double* v) const
 
 double DenseMatrix::MaxMaxNorm() const
 {
-    auto compare = [](double a, double b) 
+    auto compare = [](double a, double b)
     {
-	return std::abs(a) < std::abs(b);
+        return std::abs(a) < std::abs(b);
     };
 
     return *std::max_element(begin(data), end(data), compare);
@@ -2704,10 +2706,10 @@ void DenseMatrix::CopyMNDiag(double c, int n, int row_offset, int col_offset)
     for (int i = 0; i < n; i++)
     {
         for (int j = i + 1; j < n; j++)
-	{
+        {
             (*this)(row_offset + i, col_offset + j) =
                 (*this)(row_offset + j, col_offset + i) = 0.0;
-	}
+        }
     }
 
     for (int i = 0; i < n; i++)
@@ -2722,10 +2724,10 @@ void DenseMatrix::CopyMNDiag(double* diag, int n, int row_offset,
     for (int i = 0; i < n; i++)
     {
         for (int j = i + 1; j < n; j++)
-	{
+        {
             (*this)(row_offset + i, col_offset + j) =
                 (*this)(row_offset + j, col_offset + i) = 0.0;
-	}
+        }
     }
 
     for (int i = 0; i < n; i++)
@@ -2779,8 +2781,8 @@ void DenseMatrix::AddMatrix(DenseMatrix& A, int ro, int co)
 
 #endif
 
-    double * p = data.data() + ro + co * h;
-    double * ap = A.data.data();
+    double* p = data.data() + ro + co * h;
+    double* ap = A.data.data();
 
     for (int c = 0; c < aw; c++)
     {
@@ -2809,8 +2811,8 @@ void DenseMatrix::AddMatrix(double a, DenseMatrix& A, int ro, int co)
 
 #endif
 
-    double * p = data.data() + ro + co * h;
-    double * ap = A.data.data();
+    double* p = data.data() + ro + co * h;
+    double* ap = A.data.data();
 
     for (int c = 0; c < aw; c++)
     {
@@ -3065,12 +3067,12 @@ DenseMatrix DenseMatrix::MultTranspose(const DenseMatrix& b) const
     for (int i = 0; i < width; ++i)
     {
         for (int k = 0; k < b.width; ++k)
-	{
+        {
             for (int j = 0; j < b.height; ++j)
-            { 
-		    C(i, k) += (*this)(j, i) * b(j, k);
-	    }
-	}
+            {
+                C(i, k) += (*this)(j, i) * b(j, k);
+            }
+        }
     }
 
     return C;
