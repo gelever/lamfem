@@ -1,0 +1,7 @@
+.*.swp
+*.bak
+*.o
+*.a
+tags
+tmp
+bakup
