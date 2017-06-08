@@ -34,7 +34,7 @@ namespace mfem
 using namespace std;
 
 DenseMatrix::DenseMatrix(const DenseMatrix& other)
-    : Matrix(other.height, other.width), data(other.data)
+    : Matrix(other.height, other.width), data(other.data), capacity(other.capacity)
 {
 
 }
@@ -45,14 +45,15 @@ DenseMatrix::DenseMatrix(int s) : DenseMatrix(s, s)
 }
 
 DenseMatrix::DenseMatrix(int m, int n) : Matrix(m, n),
-    data(m * n, 0)
+    data(m * n, 0), capacity(m * n)
 {
     MFEM_ASSERT(m >= 0 && n >= 0,
                 "invalid DenseMatrix size: " << m << " x " << n);
 }
 
 DenseMatrix::DenseMatrix(const DenseMatrix& mat, char ch)
-    : Matrix(mat.width, mat.height), data(mat.height * mat.width, 0)
+    : Matrix(mat.width, mat.height), data(mat.height * mat.width, 0),
+    capacity(mat.capacity)
 {
     for (int i = 0; i < height; i++)
     {
@@ -63,6 +64,25 @@ DenseMatrix::DenseMatrix(const DenseMatrix& mat, char ch)
     }
 }
 
+DenseMatrix::DenseMatrix(DenseMatrix&& d) : Matrix(0)
+{
+    swap(*this, d);
+}
+
+DenseMatrix& DenseMatrix::operator=(DenseMatrix m)
+{
+    swap(*this, m);
+    return *this;
+}
+
+void swap(DenseMatrix& lhs, DenseMatrix& rhs)
+{
+    std::swap(lhs.capacity, rhs.capacity);
+    std::swap(lhs.width, rhs.width);
+    std::swap(lhs.height, rhs.height);
+    std::swap(lhs.data, rhs.data);
+}
+
 void DenseMatrix::SetSize(int h, int w)
 {
     MFEM_ASSERT(h >= 0 && w >= 0,
@@ -71,7 +91,13 @@ void DenseMatrix::SetSize(int h, int w)
     height = h;
     width = w;
 
-    data.resize(height * width, 0.0);
+    const int hw = h * w;
+
+    if (hw > capacity)
+    {
+        capacity = hw;
+        data.resize(capacity, 0.0);
+    }
 }
 
 double& DenseMatrix::Elem(int i, int j)
@@ -88,11 +114,7 @@ void DenseMatrix::Mult(const double* x, double* y) const
 {
     if (width == 0)
     {
-        for (int row = 0; row < height; row++)
-        {
-            y[row] = 0.0;
-        }
-
+        std::fill(y, y + height, 0.0);
         return;
     }
 
@@ -479,25 +501,12 @@ DenseMatrix& DenseMatrix::operator= (double c)
     return *this;
 }
 
-void swap(DenseMatrix& lhs, DenseMatrix& rhs)
-{
-    std::swap(lhs.width, rhs.width);
-    std::swap(lhs.height, rhs.height);
-    std::swap(lhs.data, rhs.data);
-}
-
 DenseMatrix& DenseMatrix::operator=(const std::vector<double>& d)
 {
     MFEM_ASSERT(d.size() == data.size(), "DenseMatrix set data size mismatch");
 
     data = d;
 
-    return *this;
-}
-
-DenseMatrix& DenseMatrix::operator=(DenseMatrix m)
-{
-    swap(*this, m);
     return *this;
 }
 
@@ -559,13 +568,16 @@ void DenseMatrix::Neg()
 }
 
 #ifdef MFEM_USE_LAPACK
-extern "C" void
-dgetrf_(int*, int*, double*, int*, int*, int*);
-extern "C" void
-dgetrs_(char*, int*, int*, double*, int*, int*, double*, int*, int*);
-extern "C" void
-dgetri_(int* N, double* A, int* LDA, int* IPIV, double* WORK,
-        int* LWORK, int* INFO);
+extern "C" 
+{
+    void dgetrf_(int*, int*, double*, int*, int*, int*);
+
+    void dgetrs_(char*, int*, int*, const double*, int*,
+                 const int*, double*, int*, int*);
+
+    void dgetri_(int* N, double* A, int* LDA, int* IPIV,
+                 double* WORK, int* LWORK, int* INFO);
+}
 #endif
 
 void DenseMatrix::Invert()
@@ -742,18 +754,20 @@ double DenseMatrix::FNorm() const
 }
 
 #ifdef MFEM_USE_LAPACK
-extern "C" void
-dsyevr_(char* JOBZ, char* RANGE, char* UPLO, int* N, double* A, int* LDA,
-        double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
-        double* W, double* Z, int* LDZ, int* ISUPPZ, double* WORK, int* LWORK,
-        int* IWORK, int* LIWORK, int* INFO);
-extern "C" void
-dsyev_(char* JOBZ, char* UPLO, int* N, double* A, int* LDA, double* W,
-       double* WORK, int* LWORK, int* INFO);
-extern "C" void
-dgesvd_(char* JOBU, char* JOBVT, int* M, int* N, double* A, int* LDA,
-        double* S, double* U, int* LDU, double* VT, int* LDVT, double* WORK,
-        int* LWORK, int* INFO);
+extern "C"
+{
+    void dsyevr_(char* JOBZ, char* RANGE, char* UPLO, int* N, double* A, int* LDA,
+                 double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
+                 double* W, double* Z, int* LDZ, int* ISUPPZ, double* WORK, int* LWORK,
+                 int* IWORK, int* LIWORK, int* INFO);
+
+    void dsyev_(char* JOBZ, char* UPLO, int* N, double* A, int* LDA, double* W,
+                double* WORK, int* LWORK, int* INFO);
+
+    void dgesvd_(char* JOBU, char* JOBVT, int* M, int* N, double* A, int* LDA,
+                 double* S, double* U, int* LDU, double* VT, int* LDVT, double* WORK,
+                 int* LWORK, int* INFO);
+}
 #endif
 
 void dsyevr_Eigensystem(DenseMatrix& a, Vector& ev, DenseMatrix* evect)
@@ -776,15 +790,15 @@ void dsyevr_Eigensystem(DenseMatrix& a, Vector& ev, DenseMatrix* evect)
     double ABSTOL = 0.0;
     int M;
     double* W = ev.GetData();
-    double* Z = NULL;
+    double* Z = nullptr;
     int LDZ = 1;
     int* ISUPPZ = new int[2 * N];
     int LWORK = -1; // query optimal (double) workspace size
     double QWORK;
-    double* WORK = NULL;
+    double* WORK = nullptr;
     int LIWORK = -1; // query optimal (int) workspace size
     int QIWORK;
-    int* IWORK = NULL;
+    int* IWORK = nullptr;
     int INFO;
 
     if (evect) // Compute eigenvectors too
@@ -937,62 +951,50 @@ void dsyevr_Eigensystem(DenseMatrix& a, Vector& ev, DenseMatrix* evect)
 #endif
 }
 
-void dsyev_Eigensystem(DenseMatrix& a, Vector& ev, DenseMatrix* evect)
+void dsyev_Eigensystem(const DenseMatrix& a, Vector& ev, DenseMatrix* evect)
 {
 
 #ifdef MFEM_USE_LAPACK
 
-    int   N      = a.Width();
-    char  JOBZ   = 'N';
-    char  UPLO   = 'U';
-    int   LDA    = N;
-    int   LWORK  = -1; /* query optimal workspace size */
-    int   INFO;
+    int n = a.Width();
+    char jobz = evect ? 'V' : 'N';
+    char uplo = 'U';
+    int lda = n;
+    int info;
 
-    ev.SetSize(N);
+    DenseMatrix a_copy = a;
 
-    double* A    = NULL;
-    double* W    = ev.GetData();
-    double* WORK = NULL;
-    double  QWORK;
+    ev.SetSize(n);
+    double* w = ev.GetData();
 
-    if (evect)
+
+    // Query optimal work
+    int lwork = -1;
+    std::vector<double> work;
+    double qwork;
+
+    dsyev_(&jobz, &uplo, &n, nullptr, &lda, nullptr,
+           &qwork, &lwork, &info);
+
+    lwork = static_cast<int>(qwork);
+    work.resize(lwork);
+
+    // Compute Eigenproblem
+    dsyev_(&jobz, &uplo, &n, a_copy.GetData(), &lda, w,
+           work.data(), &lwork, &info);
+
+    if (info != 0)
     {
-        JOBZ = 'V';
-        evect->SetSize(N);
-        A = evect->Data();
-    }
-    else
-    {
-        A = new double[N * N];
-    }
-
-    int hw = a.Height() * a.Width();
-    double* data = a.Data();
-
-    for (int i = 0; i < hw; i++)
-    {
-        A[i] = data[i];
-    }
-
-    dsyev_(&JOBZ, &UPLO, &N, A, &LDA, W, &QWORK, &LWORK, &INFO);
-
-    LWORK = (int) QWORK;
-    WORK = new double[LWORK];
-
-    dsyev_(&JOBZ, &UPLO, &N, A, &LDA, W, WORK, &LWORK, &INFO);
-
-    if (INFO != 0)
-    {
-        cerr << "dsyev_Eigensystem: DSYEV error code: " << INFO << endl;
+        cerr << "dsyev_eigensystem: dsyev error code: " << info << endl;
         mfem_error();
     }
 
-    delete [] WORK;
-
-    if (evect == NULL) { delete [] A; }
-
+    if (evect)
+    {
+        swap(*evect, a_copy);
+    }
 #endif
+
 }
 
 void DenseMatrix::Eigensystem(Vector& ev, DenseMatrix* evect)
@@ -3046,9 +3048,11 @@ void Add(double alpha, const DenseMatrix& A,
 
 
 #ifdef MFEM_USE_LAPACK
-extern "C" void
-dgemm_(char*, char*, int*, int*, int*, double*, const double*,
-       int*, const double*, int*, double*, double*, int*);
+extern "C"
+{
+    void dgemm_(char*, char*, int*, int*, int*, double*, const double*,
+                int*, const double*, int*, double*, double*, int*);
+}
 #endif
 
 void Mult(const DenseMatrix& b, const DenseMatrix& c, DenseMatrix& a)
@@ -4035,11 +4039,15 @@ void LUFactors::Factor(int m)
 #ifdef MFEM_USE_LAPACK
     int info = 0;
 
-    if (m) { dgetrf_(&m, &m, data, &m, ipiv, &info); }
+    if (m > 0)
+    {
+        dgetrf_(&m, &m, data.data(), &m, ipiv.data(), &info);
+    }
 
     MFEM_VERIFY(!info, "LAPACK: error in DGETRF");
 #else
     // compiling without LAPACK
+
     double* data = this->data;
 
     for (int i = 0; i < m; i++)
@@ -4112,10 +4120,51 @@ double LUFactors::Det(int m) const
     return det;
 }
 
+void LUFactors::Mult(DenseMatrix& X) const
+{
+    const int n = X.Height();
+    const int m = X.Width();
+
+    for (int k = 0; k < n; k++)
+    {
+        double* x = X.GetData() + k * n;
+
+        // X <- U X
+        for (int i = 0; i < m; i++)
+        {
+            double x_i = x[i] * data[i + i * m];
+
+            for (int j = i + 1; j < m; j++)
+            {
+                x_i += x[j] * data[i + j * m];
+            }
+
+            x[i] = x_i;
+        }
+
+        // X <- L X
+        for (int i = m - 1; i >= 0; i--)
+        {
+            double x_i = x[i];
+
+            for (int j = 0; j < i; j++)
+            {
+                x_i += x[j] * data[i + j * m];
+            }
+
+            x[i] = x_i;
+        }
+
+        // X <- P^{-1} X
+        for (int i = m - 1; i >= 0; i--)
+        {
+            std::swap(x[i], x[ipiv[i] - ipiv_base]);
+        }
+    }
+}
+
 void LUFactors::Mult(int m, int n, double* X) const
 {
-    const double* data = this->data;
-    const int* ipiv = this->ipiv;
     double* x = X;
 
     for (int k = 0; k < n; k++)
@@ -4158,8 +4207,8 @@ void LUFactors::Mult(int m, int n, double* X) const
 
 void LUFactors::LSolve(int m, int n, double* X) const
 {
-    const double* data = this->data;
-    const int* ipiv = this->ipiv;
+    const double* data = this->data.data();
+    const int* ipiv = this->ipiv.data();
     double* x = X;
 
     for (int k = 0; k < n; k++)
@@ -4187,7 +4236,7 @@ void LUFactors::LSolve(int m, int n, double* X) const
 
 void LUFactors::USolve(int m, int n, double* X) const
 {
-    const double* data = this->data;
+    const double* data = this->data.data();
     double* x = X;
 
     // X <- U^{-1} X
@@ -4213,7 +4262,7 @@ void LUFactors::Solve(int m, int n, double* X) const
     char trans = 'N';
     int  info = 0;
 
-    if (m > 0 && n > 0) { dgetrs_(&trans, &m, &n, data, &m, ipiv, X, &m, &info); }
+    if (m > 0 && n > 0) { dgetrs_(&trans, &m, &n, data.data(), &m, ipiv.data(), X, &m, &info); }
 
     MFEM_VERIFY(!info, "LAPACK: error in DGETRS");
 #else
@@ -4226,8 +4275,8 @@ void LUFactors::Solve(int m, int n, double* X) const
 void LUFactors::GetInverseMatrix(int m, double* X) const
 {
     // A^{-1} = U^{-1} L^{-1} P
-    const double* data = this->data;
-    const int* ipiv = this->ipiv;
+    const double* data = this->data.data();
+    const int* ipiv = this->ipiv.data();
     // X <- U^{-1} (set only the upper triangular part of X)
     double* x = X;
 
@@ -4322,7 +4371,7 @@ void LUFactors::SubMult(int m, int n, int r, const double* A21,
 void LUFactors::BlockFactor(
     int m, int n, double* A12, double* A21, double* A22) const
 {
-    const double* data = this->data;
+    const double* data = this->data.data();
     // A12 <- L^{-1} P A12
     LSolve(m, n, A12);
 
@@ -4374,55 +4423,31 @@ DenseMatrixInverse::DenseMatrixInverse(const DenseMatrix& mat)
     : MatrixInverse(mat)
 {
     MFEM_ASSERT(height == width, "not a square matrix");
-    a = &mat;
-    lu.data = new double[width * width];
-    lu.ipiv = new int[width];
-    Factor();
-}
 
-DenseMatrixInverse::DenseMatrixInverse(const DenseMatrix* mat)
-    : MatrixInverse(*mat)
-{
-    MFEM_ASSERT(height == width, "not a square matrix");
-    a = mat;
-    lu.data = new double[width * width];
-    lu.ipiv = new int[width];
-}
-
-void DenseMatrixInverse::Factor()
-{
-    MFEM_ASSERT(a, "DenseMatrix is not given");
-    const double* adata = a->GetData();
-
-    for (int i = 0, s = width * width; i < s; i++)
-    {
-        lu.data[i] = adata[i];
-    }
-
-    lu.Factor(width);
+    Factor(mat);
 }
 
 void DenseMatrixInverse::Factor(const DenseMatrix& mat)
 {
     MFEM_VERIFY(mat.Height() == mat.Width(), "DenseMatrix is not square!");
 
-    if (width != mat.Width())
-    {
-        height = width = mat.Width();
-        delete [] lu.data;
-        lu.data = new double[width * width];
-        delete [] lu.ipiv;
-        lu.ipiv = new int[width];
-    }
+    height = mat.Width();
+    width = mat.Width();
 
-    a = &mat;
-    Factor();
+    lu.SetSize(width);
+
+    const double* mat_data = mat.GetData();
+    double* lu_data = lu.GetData();
+
+    std::copy(mat_data, mat_data + width * height, lu_data);
+
+    lu.Factor(width);
 }
 
 void DenseMatrixInverse::SetOperator(const Operator& op)
 {
     const DenseMatrix* p = dynamic_cast<const DenseMatrix*>(&op);
-    MFEM_VERIFY(p != NULL, "Operator is not a DenseMatrix!");
+    MFEM_VERIFY(p != nullptr, "Operator is not a DenseMatrix!");
     Factor(*p);
 }
 
@@ -4445,10 +4470,10 @@ DenseMatrix DenseMatrixInverse::Mult(const DenseMatrix& B) const
     return X;
 }
 
-void DenseMatrixInverse::TestInversion()
+void DenseMatrixInverse::TestInversion(const DenseMatrix& a)
 {
     DenseMatrix C(width);
-    Mult(*a, C);
+    Mult(a, C);
 
     for (int i = 0; i < width; i++)
     {
@@ -4460,8 +4485,7 @@ void DenseMatrixInverse::TestInversion()
 
 DenseMatrixInverse::~DenseMatrixInverse()
 {
-    delete [] lu.data;
-    delete [] lu.ipiv;
+
 }
 
 
@@ -4471,7 +4495,7 @@ DenseMatrixEigensystem::DenseMatrixEigensystem(DenseMatrix& m)
     n = mat.Width();
     EVal.SetSize(n);
     EVect.SetSize(n);
-    ev.SetDataAndSize(NULL, n);
+    ev.SetDataAndSize(nullptr, n);
 
 #ifdef MFEM_USE_LAPACK
     jobz = 'V';
@@ -4482,7 +4506,7 @@ DenseMatrixEigensystem::DenseMatrixEigensystem(DenseMatrix& m)
            &qwork, &lwork, &info);
 
     lwork = (int) qwork;
-    work = new double[lwork];
+    work.resize(lwork);
 #endif
 }
 
@@ -4500,7 +4524,7 @@ void DenseMatrixEigensystem::Eval()
 #ifdef MFEM_USE_LAPACK
     EVect = mat;
     dsyev_(&jobz, &uplo, &n, EVect.Data(), &n, EVal.GetData(),
-           work, &lwork, &info);
+           work.data(), &lwork, &info);
 
     if (info != 0)
     {
@@ -4516,23 +4540,34 @@ void DenseMatrixEigensystem::Eval()
 
 DenseMatrixEigensystem::~DenseMatrixEigensystem()
 {
-#ifdef MFEM_USE_LAPACK
-    delete [] work;
-#endif
+
 }
 
 
-DenseMatrixSVD::DenseMatrixSVD(DenseMatrix& M)
+DenseMatrixSVD::DenseMatrixSVD()
+    : m(-1), n(-1)
 {
-    m = M.Height();
-    n = M.Width();
+    // When no size is set,
+    // Init is called on eval
+
+#ifdef MFEM_USE_LAPACK
+    jobu  = 'N';
+    jobvt = 'N';
+    lwork = -1;
+    info = -1;
+#endif
+
+}
+
+DenseMatrixSVD::DenseMatrixSVD(DenseMatrix& d)
+    : m(d.Height()), n(d.Width())
+{
     Init();
 }
 
 DenseMatrixSVD::DenseMatrixSVD(int h, int w)
+    : m(h), n(w)
 {
-    m = h;
-    n = w;
     Init();
 }
 
@@ -4546,29 +4581,36 @@ void DenseMatrixSVD::Init()
 
     double qwork;
     lwork = -1;
-    dgesvd_(&jobu, &jobvt, &m, &n, NULL, &m, sv.GetData(), NULL, &m,
-            NULL, &n, &qwork, &lwork, &info);
+    dgesvd_(&jobu, &jobvt, &m, &n, nullptr, &m, sv.GetData(), nullptr, &m,
+            nullptr, &n, &qwork, &lwork, &info);
     lwork = (int) qwork;
-    work = new double[lwork];
+    work.resize(lwork);
 #else
     mfem_error("DenseMatrixSVD::Init(): Compiled without LAPACK");
 #endif
 }
 
+DenseMatrix DenseMatrixSVD::EvalCopy(const DenseMatrix& M)
+{
+    DenseMatrix svd(M);
+    Eval(svd);
+
+    return svd;
+}
+
 void DenseMatrixSVD::Eval(DenseMatrix& M)
 {
-#ifdef MFEM_DEBUG
-
     if (M.Height() != m || M.Width() != n)
     {
-        mfem_error("DenseMatrixSVD::Eval()");
+        m = M.Height();
+        n = M.Width();
+        
+        Init();
     }
 
-#endif
-
 #ifdef MFEM_USE_LAPACK
-    dgesvd_(&jobu, &jobvt, &m, &n, M.Data(), &m, sv.GetData(), NULL, &m,
-            NULL, &n, work, &lwork, &info);
+    dgesvd_(&jobu, &jobvt, &m, &n, M.Data(), &m, sv.GetData(), nullptr, &m,
+            nullptr, &n, work.data(), &lwork, &info);
 
     if (info)
     {
@@ -4580,14 +4622,6 @@ void DenseMatrixSVD::Eval(DenseMatrix& M)
     mfem_error("DenseMatrixSVD::Eval(): Compiled without LAPACK");
 #endif
 }
-
-DenseMatrixSVD::~DenseMatrixSVD()
-{
-#ifdef MFEM_USE_LAPACK
-    delete [] work;
-#endif
-}
-
 
 void DenseTensor::AddMult(const Table& elem_dof, const Vector& x, Vector& y)
 const

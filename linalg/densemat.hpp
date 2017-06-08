@@ -26,7 +26,7 @@ class DenseMatrix : public Matrix
 
 public:
     /// Default constructor for DenseMatrix.
-    DenseMatrix() : Matrix(0), data(0) { };
+    DenseMatrix() : Matrix(0), data(0), capacity(0) { };
 
     /// Copy constructor
     DenseMatrix(const DenseMatrix& other);
@@ -34,8 +34,8 @@ public:
     /// Creates square matrix of size s.
     explicit DenseMatrix(int s);
 
-    DenseMatrix(DenseMatrix&&  d);
-    DenseMatrix& operator= (DenseMatrix d);
+    DenseMatrix(DenseMatrix&& d);
+    DenseMatrix& operator=(DenseMatrix d);
 
     friend void swap(DenseMatrix& lhs, DenseMatrix& rhs);
 
@@ -60,9 +60,12 @@ public:
     void UseExternalData(double* d, int h, int w)
     {
         mfem_error("Don't use this");
+        /*
         data = std::vector<double> (d, d + h * w);
         height = h;
         width = w;
+        capacity = hw * w;
+        */
     }
 
     /// Change the data array and the size of the DenseMatrix.
@@ -72,22 +75,23 @@ public:
     void Reset(double* d, int h, int w)
     {
         mfem_error("Don't use this");
-        UseExternalData(d, h, w);
+        //UseExternalData(d, h, w);
     }
 
     /** Clear the data array and the dimensions of the DenseMatrix. This method
         should not be used with DenseMatrix that owns its current data array. */
     void ClearExternalData()
     {
-        data.resize(0);
-        height = 0;
-        width = 0;
+        mfem_error("Don't use this");
+        Clear();
     }
 
     /// Delete the matrix data array (if owned) and reset the matrix state.
     void Clear()
     {
-        ClearExternalData();
+        height = 0;
+        width = 0;
+        // TODO(gelever): should data/capacity be resized to zero?
     }
 
     /// For backward compatibility define Size to be synonym of Width()
@@ -357,8 +361,9 @@ public:
 
 private:
     std::vector<double> data;
+    int capacity;
 
-    void Eigensystem(Vector& ev, DenseMatrix* evect = NULL);
+    void Eigensystem(Vector& ev, DenseMatrix* evect = nullptr);
 
 };
 
@@ -453,8 +458,6 @@ void AddMult_a_VVt(const double a, const Vector& v, DenseMatrix& VVt);
 class LUFactors
 {
 public:
-    double* data;
-    int* ipiv;
 #ifdef MFEM_USE_LAPACK
     static const int ipiv_base = 1;
 #else
@@ -463,14 +466,30 @@ public:
 
     /** With this constructor, the (public) data and ipiv members should be set
         explicitly before calling class methods. */
-    LUFactors() { }
+    LUFactors() : data(0), ipiv(0){ }
 
-    LUFactors(double* data_, int* ipiv_) : data(data_), ipiv(ipiv_) { }
+    LUFactors(double* data_, int* ipiv_) : LUFactors()
+    {
+        mfem_error("Don't use this constructor");
+
+    }
+    LUFactors(const std::vector<double>& data_, const std::vector<int>& ipiv_) : data(data_), ipiv(ipiv_) { }
 
     /** Factorize the current data of size (m x m) overwriting it with the LU
         factors. The factorization is such that L.U = P.A, where A is the
         original matrix and P is a permutation matrix represented by ipiv. */
     void Factor(int m);
+
+    double* GetData()
+    {
+        return data.data();
+    }
+
+    void SetSize(int m)
+    {
+        data.resize(m * m, 0);
+        ipiv.resize(m, 0);
+    }
 
     /** Assuming L.U = P.A factored data of size (m x m), compute |A|
         from the diagonal values of U and the permutation information. */
@@ -479,6 +498,7 @@ public:
     /** Assuming L.U = P.A factored data of size (m x m), compute X <- A X,
         for a matrix X of size (m x n). */
     void Mult(int m, int n, double* X) const;
+    void Mult(DenseMatrix& x) const;
 
     /** Assuming L.U = P.A factored data of size (m x m), compute
         X <- L^{-1} P X, for a matrix X of size (m x n). */
@@ -538,6 +558,9 @@ public:
            Y1 <- X1 = U^{-1} (Y1 - U12 X2). */
     void BlockBackSolve(int m, int n, int r, const double* U12,
                         const double* X2, double* Y1) const;
+private:
+    std::vector<double> data;
+    std::vector<int> ipiv;
 };
 
 
@@ -546,25 +569,24 @@ public:
 class DenseMatrixInverse : public MatrixInverse
 {
 private:
-    const DenseMatrix* a;
     LUFactors lu;
 
 public:
     /// Default constructor.
-    DenseMatrixInverse() : a(NULL), lu(NULL, NULL) { }
+    DenseMatrixInverse() { }
 
     /** Creates square dense matrix. Computes factorization of mat
         and stores LU factors. */
-    DenseMatrixInverse(const DenseMatrix& mat);
+    explicit DenseMatrixInverse(const DenseMatrix& mat);
 
     /// Same as above but does not factorize the matrix.
-    DenseMatrixInverse(const DenseMatrix* mat);
+    explicit DenseMatrixInverse(const DenseMatrix* mat)
+    {
+        mfem_error("Don't use this");
+    };
 
     ///  Get the size of the inverse matrix
     int Size() const { return Width(); }
-
-    /// Factor the current DenseMatrix, *a
-    void Factor();
 
     /// Factor a new DenseMatrix of the same size
     void Factor(const DenseMatrix& mat);
@@ -591,7 +613,7 @@ public:
     double Det() const { return lu.Det(width); }
 
     /// Print the numerical conditioning of the inversion: ||A^{-1} A - I||.
-    void TestInversion();
+    void TestInversion(const DenseMatrix& a);
 
     /// Destroys dense inverse matrix.
     virtual ~DenseMatrixInverse();
@@ -607,14 +629,14 @@ class DenseMatrixEigensystem
     int n;
 
 #ifdef MFEM_USE_LAPACK
-    double* work;
+    std::vector<double> work;
     char jobz, uplo;
     int lwork, info;
 #endif
 
 public:
 
-    DenseMatrixEigensystem(DenseMatrix& m);
+    explicit DenseMatrixEigensystem(DenseMatrix& m);
     void Eval();
     Vector& Eigenvalues() { return EVal; }
     DenseMatrix& Eigenvectors() { return EVect; }
@@ -630,24 +652,44 @@ public:
 
 class DenseMatrixSVD
 {
-    Vector sv;
-    int m, n;
-
-#ifdef MFEM_USE_LAPACK
-    double* work;
-    char jobu, jobvt;
-    int lwork, info;
-#endif
-
-    void Init();
 public:
+    // Constructors only setup the workspace,
+    // call Eval to get SVD
 
-    DenseMatrixSVD(DenseMatrix& M);
+    // Setup is when eval is called
+    DenseMatrixSVD();
+
+    // Setup by user parameter
     DenseMatrixSVD(int h, int w);
+
+    // Setup based on input matrix size
+    explicit DenseMatrixSVD(DenseMatrix& d);
+
     void Eval(DenseMatrix& M);
+    DenseMatrix EvalCopy(const DenseMatrix& M);
+
     Vector& Singularvalues() { return sv; }
     double Singularvalue(int i) { return sv(i); }
-    ~DenseMatrixSVD();
+
+    ~DenseMatrixSVD() = default;
+private:
+
+    void Init();
+
+    Vector sv;
+    int m;
+    int n;
+
+#ifdef MFEM_USE_LAPACK
+
+    std::vector<double> work;
+    char jobu;
+    char jobvt;
+    int lwork;
+    int info;
+
+#endif
+
 };
 
 class Table;
