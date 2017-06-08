@@ -13,7 +13,7 @@
 #define MFEM_HYPRE
 
 #include <map>
-#include "table.hpp"
+#include "../general/table.hpp"
 #include "../config/config.hpp"
 
 #ifdef MFEM_USE_MPI

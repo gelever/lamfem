@@ -15,7 +15,7 @@
 #include "config/config.hpp"
 
 #ifdef MFEM_USE_MPI
-#include "linalg/communication.hpp"
+#include "general/communication.hpp"
 #endif
 
 #include "linalg/linalg.hpp"

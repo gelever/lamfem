@@ -16,7 +16,7 @@
 #include "vector.hpp"
 #include "matrix.hpp"
 #include "densemat.hpp"
-#include "table.hpp"
+#include "../general/table.hpp"
 
 #include <iostream>
 #include <iomanip>
