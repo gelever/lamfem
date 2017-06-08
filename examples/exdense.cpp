@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 
     Vector ev(2);
 
+#ifdef MFEM_USE_LAPACK
     auto d_dsyev = d;
 
     printf("before\n");
@@ -47,6 +48,8 @@ int main(int argc, char *argv[])
 
     DenseMatrixEigensystem d_eig(d);
     d_eig.Eval();
+
+#endif
 
     DenseMatrixInverse d_inv(d);
     DenseMatrix x =  d_inv.Mult(d);

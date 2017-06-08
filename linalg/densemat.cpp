@@ -607,7 +607,7 @@ void DenseMatrix::Invert()
 
     dgetri_(&width, data.data(), &width, ipiv.data(), &qwork, &lwork, &info);
 
-    lwork = (int) qwork;
+    lwork = static_cast<int>(qwork);
     work.resize(lwork);
 
     dgetri_(&width, data.data(), &width, ipiv.data(), work.data(), &lwork, &info);
@@ -756,199 +756,193 @@ double DenseMatrix::FNorm() const
 #ifdef MFEM_USE_LAPACK
 extern "C"
 {
-    void dsyevr_(char* JOBZ, char* RANGE, char* UPLO, int* N, double* A, int* LDA,
-                 double* VL, double* VU, int* IL, int* IU, double* ABSTOL, int* M,
-                 double* W, double* Z, int* LDZ, int* ISUPPZ, double* WORK, int* LWORK,
-                 int* IWORK, int* LIWORK, int* INFO);
+    void dsyevr_(char* jobz, char* range, char* uplo, int* n, double* a, int* lda,
+                 double* vl, double* vu, int* il, int* iu, double* abstol, int* m,
+                 double* w, double* z, int* ldz, int* isuppz, double* work, int* lwork,
+                 int* iwork, int* liwork, int* info);
 
-    void dsyev_(char* JOBZ, char* UPLO, int* N, double* A, int* LDA, double* W,
-                double* WORK, int* LWORK, int* INFO);
+    void dsyev_(char* jobz, char* uplo, int* n, double* a, int* lda, double* w,
+                double* work, int* lwork, int* info);
 
-    void dgesvd_(char* JOBU, char* JOBVT, int* M, int* N, double* A, int* LDA,
-                 double* S, double* U, int* LDU, double* VT, int* LDVT, double* WORK,
-                 int* LWORK, int* INFO);
+    void dgesvd_(char* jobu, char* jobvt, int* m, int* n, double* a, int* lda,
+                 double* s, double* u, int* ldu, double* vt, int* ldvt, double* work,
+                 int* lwork, int* info);
 }
 #endif
 
-void dsyevr_Eigensystem(DenseMatrix& a, Vector& ev, DenseMatrix* evect)
+void dsyevr_Eigensystem(const DenseMatrix& a, Vector& ev, DenseMatrix* evect)
 {
 
 #ifdef MFEM_USE_LAPACK
 
     ev.SetSize(a.Width());
 
-    char JOBZ = 'N';
-    char RANGE = 'A';
-    char UPLO = 'U';
-    int  N = a.Width();
-    double* A = new double[N * N];
-    int  LDA = N;
-    double VL = 0.0;
-    double VU = 1.0;
-    int  IL = 0;
-    int  IU = 1;
-    double ABSTOL = 0.0;
-    int M;
-    double* W = ev.GetData();
-    double* Z = nullptr;
-    int LDZ = 1;
-    int* ISUPPZ = new int[2 * N];
-    int LWORK = -1; // query optimal (double) workspace size
-    double QWORK;
-    double* WORK = nullptr;
-    int LIWORK = -1; // query optimal (int) workspace size
-    int QIWORK;
-    int* IWORK = nullptr;
-    int INFO;
-
-    if (evect) // Compute eigenvectors too
+    if (evect)
     {
-        evect->SetSize(N);
-
-        JOBZ     = 'V';
-        Z        = evect->Data();
-        LDZ      = N;
+        evect->SetSize(a.Width());
     }
 
-    int hw = a.Height() * a.Width();
-    double* data = a.Data();
+    char jobz = evect ? 'V' : 'N';
+    char range = 'A';
+    char uplo = 'U';
 
-    for (int i = 0; i < hw; i++)
-    {
-        A[i] = data[i];
-    }
+    DenseMatrix a_copy(a);
+    int n = a.Width();
 
-    dsyevr_(&JOBZ, &RANGE, &UPLO, &N, A, &LDA, &VL, &VU, &IL, &IU,
-            &ABSTOL, &M, W, Z, &LDZ, ISUPPZ, &QWORK, &LWORK,
-            &QIWORK, &LIWORK, &INFO);
+    double abstol = -1.0;
+    int m;
 
-    LWORK  = (int) QWORK;
-    LIWORK = QIWORK;
+    double* w = ev.GetData();
+    double* z = evect ? evect->GetData() : nullptr;
 
-    WORK  = new double[LWORK];
-    IWORK = new int[LIWORK];
+    std::vector<int> isuppz(2 * n);
 
-    dsyevr_(&JOBZ, &RANGE, &UPLO, &N, A, &LDA, &VL, &VU, &IL, &IU,
-            &ABSTOL, &M, W, Z, &LDZ, ISUPPZ, WORK, &LWORK,
-            IWORK, &LIWORK, &INFO);
+    double qwork;
+    int qiwork;
 
-    if (INFO != 0)
+    std::vector<double> work;
+    std::vector<int> iwork;
+
+    int info;
+
+    // query optimal (double) workspace size
+    int lwork = -1;
+    int liwork = -1;
+
+    dsyevr_(&jobz, &range, &uplo, &n, nullptr, &n, nullptr,
+            nullptr, nullptr, nullptr, &abstol, &m, nullptr,
+            nullptr, &n, isuppz.data(), &qwork, &lwork,
+            &qiwork, &liwork, &info);
+
+    lwork  = static_cast<int>(qwork);
+    liwork = qiwork;
+
+    work.resize(lwork);
+    iwork.resize(liwork);
+
+    // Compute Eigenproblem
+    dsyevr_(&jobz, &range, &uplo, &n, a_copy.GetData(), &n,
+            nullptr, nullptr, nullptr, nullptr, &abstol, &m,
+            w, z, &n, isuppz.data(), work.data(), &lwork,
+            iwork.data(), &liwork, &info);
+
+    if (info != 0)
     {
         cerr << "dsyevr_Eigensystem(...): DSYEVR error code: "
-             << INFO << endl;
+             << info << endl;
         mfem_error();
     }
 
 #ifdef MFEM_DEBUG
 
-    if (M < N)
+    if (m < n)
     {
-        cerr << "dsyevr_Eigensystem(...):\n"
-             << " DSYEVR did not find all eigenvalues "
-             << M << "/" << N << endl;
+        cerr << "dsyevr_eigensystem(...):\n"
+             << " dsyevr did not find all eigenvalues "
+             << m << "/" << n << endl;
         mfem_error();
     }
 
-    if (CheckFinite(W, N) > 0)
+    if (checkfinite(w, n) > 0)
     {
-        mfem_error("dsyevr_Eigensystem(...): inf/nan values in W");
+        mfem_error("dsyevr_eigensystem(...): inf/nan values in w");
     }
 
-    if (CheckFinite(Z, N * N) > 0)
+    if (evects && checkfinite(z, n * n) > 0)
     {
-        mfem_error("dsyevr_Eigensystem(...): inf/nan values in Z");
+        mfem_error("dsyevr_eigensystem(...): inf/nan values in z");
     }
 
-    VU = 0.0;
+    double vu = 0.0;
 
-    for (IL = 0; IL < N; IL++)
-        for (IU = 0; IU <= IL; IU++)
+    for (int il = 0; il < n; il++)
+    {
+        for (int iu = 0; iu <= il; iu++)
         {
-            VL = 0.0;
+            double vl = 0.0;
 
-            for (M = 0; M < N; M++)
+            for (int m = 0; m < n; m++)
             {
-                VL += Z[M + IL * N] * Z[M + IU * N];
+                vl += z[m + il * n] * z[m + iu * n];
             }
 
-            if (IU < IL)
+            if (iu < il)
             {
-                VL = fabs(VL);
+                vl = fabs(vl);
             }
             else
             {
-                VL = fabs(VL - 1.0);
+                vl = fabs(vl - 1.0);
             }
 
-            if (VL > VU)
+            if (vl > vu)
             {
-                VU = VL;
+                vu = vl;
             }
 
-            if (VU > 0.5)
+            if (vu > 0.5)
             {
-                cerr << "dsyevr_Eigensystem(...):"
-                     << " Z^t Z - I deviation = " << VU
-                     << "\n W[max] = " << W[N - 1] << ", W[min] = "
-                     << W[0] << ", N = " << N << endl;
+                cerr << "dsyevr_eigensystem(...):"
+                     << " z^t z - i deviation = " << vu
+                     << "\n w[max] = " << w[n - 1] << ", w[min] = "
+                     << w[0] << ", n = " << n << endl;
                 mfem_error();
             }
         }
-
-    if (VU > 1e-9)
-    {
-        cerr << "dsyevr_Eigensystem(...):"
-             << " Z^t Z - I deviation = " << VU
-             << "\n W[max] = " << W[N - 1] << ", W[min] = "
-             << W[0] << ", N = " << N << endl;
     }
 
-    if (VU > 1e-5)
+    if (vu > 1e-9)
     {
-        mfem_error("dsyevr_Eigensystem(...): ERROR: ...");
+        cerr << "dsyevr_eigensystem(...):"
+             << " z^t z - i deviation = " << vu
+             << "\n w[max] = " << w[n - 1] << ", w[min] = "
+             << w[0] << ", n = " << n << endl;
     }
 
-    VU = 0.0;
+    if (vu > 1e-5)
+    {
+        mfem_error("dsyevr_eigensystem(...): error: ...");
+    }
 
-    for (IL = 0; IL < N; IL++)
-        for (IU = 0; IU < N; IU++)
+    vu = 0.0;
+
+    for (int il = 0; il < n; il++)
+    {
+        for (int iu = 0; iu < n; iu++)
         {
-            VL = 0.0;
+            vl = 0.0;
 
-            for (M = 0; M < N; M++)
+            for (m = 0; m < n; m++)
             {
-                VL += Z[IL + M * N] * W[M] * Z[IU + M * N];
+                vl += z[il + m * n] * w[m] * z[iu + m * n];
             }
 
-            VL = fabs(VL - data[IL + N * IU]);
+            vl = fabs(vl - a_copy.GetData()[il + n * iu]);
 
-            if (VL > VU)
+            if (vl > vu)
             {
-                VU = VL;
+                vu = vl;
             }
         }
-
-    if (VU > 1e-9)
-    {
-        cerr << "dsyevr_Eigensystem(...):"
-             << " max matrix deviation = " << VU
-             << "\n W[max] = " << W[N - 1] << ", W[min] = "
-             << W[0] << ", N = " << N << endl;
     }
 
-    if (VU > 1e-5)
+    if (vu > 1e-9)
     {
-        mfem_error("dsyevr_Eigensystem(...): ERROR: ...");
+        cerr << "dsyevr_eigensystem(...):"
+             << " max matrix deviation = " << vu
+             << "\n w[max] = " << w[n - 1] << ", w[min] = "
+             << w[0] << ", n = " << n << endl;
     }
 
-#endif
+    if (vu > 1e-5)
+    {
+        mfem_error("dsyevr_eigensystem(...): error: ...");
+    }
 
-    delete [] IWORK;
-    delete [] WORK;
-    delete [] ISUPPZ;
-    delete [] A;
+#endif // MFEM_DEBUG
 
-#endif
+
+#endif // MFEM_USE_LAPACK
 }
 
 void dsyev_Eigensystem(const DenseMatrix& a, Vector& ev, DenseMatrix* evect)
@@ -1001,9 +995,9 @@ void DenseMatrix::Eigensystem(Vector& ev, DenseMatrix* evect)
 {
 #ifdef MFEM_USE_LAPACK
 
-    // dsyevr_Eigensystem(*this, ev, evect);
+    dsyevr_Eigensystem(*this, ev, evect);
 
-    dsyev_Eigensystem(*this, ev, evect);
+    // dsyev_Eigensystem(*this, ev, evect);
 
 #else
 
@@ -1019,12 +1013,16 @@ void DenseMatrix::SingularValues(Vector& sv) const
     char jobvt = 'N';
     int m = Height();
     int n = Width();
+
     std::vector<double> a = data;
     sv.SetSize(min(m, n));
+
     double* s = sv;
     double* u = nullptr;
     double* vt = nullptr;
+
     std::vector<double> work;
+
     int lwork = -1;
     int info;
     double qwork;
@@ -1032,7 +1030,7 @@ void DenseMatrix::SingularValues(Vector& sv) const
     dgesvd_(&jobu, &jobvt, &m, &n, a.data(), &m,
             s, u, &m, vt, &n, &qwork, &lwork, &info);
 
-    lwork = (int) qwork;
+    lwork = static_cast<int>(qwork);
     work.resize(lwork);
 
     dgesvd_(&jobu, &jobvt, &m, &n, a.data(), &m,
@@ -1057,10 +1055,12 @@ int DenseMatrix::Rank(double tol) const
     SingularValues(sv);
 
     for (int i = 0; i < sv.Size(); ++i)
+    {
         if (sv(i) >= tol)
         {
             ++rank;
         }
+    }
 
     return rank;
 }
@@ -1655,6 +1655,7 @@ inline int Reduce3S(
         d2  -= 2 * v2 * w2;
         d23 -= v2 * w3 + v3 * w2;
         d3  -= 2 * v3 * w3;
+
 #ifdef MFEM_DEBUG
         // compute the offdiagonal entries on the first row/column of B which
         // should be zero:
@@ -4048,7 +4049,7 @@ void LUFactors::Factor(int m)
 #else
     // compiling without LAPACK
 
-    double* data = this->data;
+    double* data = this->data.data();
 
     for (int i = 0; i < m; i++)
     {
@@ -4096,6 +4097,8 @@ void LUFactors::Factor(int m)
                 data[j + k * m] -= a_ik * data[j + i * m];
             }
         }
+
+        data += m;
     }
 
 #endif
@@ -4583,7 +4586,7 @@ void DenseMatrixSVD::Init()
     lwork = -1;
     dgesvd_(&jobu, &jobvt, &m, &n, nullptr, &m, sv.GetData(), nullptr, &m,
             nullptr, &n, &qwork, &lwork, &info);
-    lwork = (int) qwork;
+    lwork = static_cast<int>(qwork);
     work.resize(lwork);
 #else
     mfem_error("DenseMatrixSVD::Init(): Compiled without LAPACK");
