@@ -48,7 +48,7 @@ public:
     /** Construct a DenseMatrix using existing data array. The DenseMatrix does
         not assume ownership of the data array, i.e. it will not delete the
         array. */
-    DenseMatrix(double* d, int h, int w) : Matrix(h, w)
+    DenseMatrix(double* d, int h, int w) : Matrix(h, w), capacity(h * w)
     {
         UseExternalData(d, h, w);
     }
@@ -654,15 +654,16 @@ class DenseMatrixSVD
 {
 public:
     // Constructors only setup the workspace,
-    // call Eval to get SVD
+    // Call Eval to get SVD
 
-    // Setup is when eval is called
+    // Default, workspace is allocated when eval is called
     DenseMatrixSVD();
 
-    // Setup by user parameter
+    // Workspace allocated during construction
     DenseMatrixSVD(int h, int w);
 
     // Setup based on input matrix size
+    // Workspace allocated during construction
     explicit DenseMatrixSVD(DenseMatrix& d);
 
     void Eval(DenseMatrix& M);
@@ -707,7 +708,7 @@ private:
     //bool own_data;
 
 public:
-    DenseTensor() : nk(0), tdata(0) /*, own_data(true) */ { }
+    DenseTensor() : nk(0), height_(0), width_(0), tdata(0) { }
 
     DenseTensor(int i, int j, int k)
         : tdata(k, DenseMatrix(i, j)), nk(k), height_(i), width_(j)
@@ -721,25 +722,18 @@ public:
 
     void SetSize(int i, int j, int k)
     {
-        //if (own_data) { delete [] tdata; }
-        //Mk.UseExternalData(NULL, i, j);
         height_ = i;
         width_ = j;
         nk = k;
 
-        tdata = std::vector<DenseMatrix> (k, DenseMatrix(height_, width_));
+        tdata = std::vector<DenseMatrix>(k, {height_, width_});
     }
 
     void UseExternalData(double* ext_data, int i, int j, int k)
     {
         mfem_error("Don't use this");
-        /*
-        if (own_data) { delete [] tdata; }
-        Mk.UseExternalData(NULL, i, j);
-        nk = k;
-        tdata = ext_data;
-        own_data = false;
-        */
+        // NOTE(gelever): if this is implemented, this will make a copy.
+        // Which is not the intention of the function.
     }
 
     /// Sets the tensor elements equal to constant c
