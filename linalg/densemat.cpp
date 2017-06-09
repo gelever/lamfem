@@ -4038,6 +4038,7 @@ void AddMult_a_VVt(const double a, const Vector& v, DenseMatrix& VVt)
 void LUFactors::Factor(int m)
 {
 #ifdef MFEM_USE_LAPACK
+
     int info = 0;
 
     if (m > 0)
@@ -4046,8 +4047,8 @@ void LUFactors::Factor(int m)
     }
 
     MFEM_VERIFY(!info, "LAPACK: error in DGETRF");
-#else
-    // compiling without LAPACK
+
+#else // compiling without LAPACK
 
     double* data = this->data.data();
 
@@ -4097,8 +4098,6 @@ void LUFactors::Factor(int m)
                 data[j + k * m] -= a_ik * data[j + i * m];
             }
         }
-
-        data += m;
     }
 
 #endif

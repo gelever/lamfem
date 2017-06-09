@@ -59,13 +59,14 @@ public:
         DenseMatrix that owns its current data array. */
     void UseExternalData(double* d, int h, int w)
     {
-        mfem_error("Don't use this");
-        /*
+        //mfem_error("Don't use this: DenseMatrix::UseExternalData");
+        // NOTE(gelever): this is copy and not original data!
+        ///*
         data = std::vector<double> (d, d + h * w);
         height = h;
         width = w;
-        capacity = hw * w;
-        */
+        capacity = h * w;
+        //*/
     }
 
     /// Change the data array and the size of the DenseMatrix.
@@ -74,7 +75,7 @@ public:
         array, if owned. */
     void Reset(double* d, int h, int w)
     {
-        mfem_error("Don't use this");
+        mfem_error("Don't use this: DenseMatrix::Reset");
         //UseExternalData(d, h, w);
     }
 
@@ -82,7 +83,7 @@ public:
         should not be used with DenseMatrix that owns its current data array. */
     void ClearExternalData()
     {
-        mfem_error("Don't use this");
+        //mfem_error("Don't use this: DenseMatrix::ClearExternalData");
         Clear();
     }
 
@@ -470,7 +471,7 @@ public:
 
     LUFactors(double* data_, int* ipiv_) : LUFactors()
     {
-        mfem_error("Don't use this constructor");
+        mfem_error("Don't use this constructor: LUFactors::LUFactors");
 
     }
     LUFactors(const std::vector<double>& data_, const std::vector<int>& ipiv_) : data(data_), ipiv(ipiv_) { }
@@ -483,6 +484,11 @@ public:
     double* GetData()
     {
         return data.data();
+    }
+
+    int* GetIpiv()
+    {
+        return ipiv.data();
     }
 
     void SetSize(int m)
@@ -582,7 +588,7 @@ public:
     /// Same as above but does not factorize the matrix.
     explicit DenseMatrixInverse(const DenseMatrix* mat)
     {
-        mfem_error("Don't use this");
+        mfem_error("Don't use this: DenseMatrixInverse::DenseMatrixInverse");
     };
 
     ///  Get the size of the inverse matrix
@@ -731,9 +737,15 @@ public:
 
     void UseExternalData(double* ext_data, int i, int j, int k)
     {
-        mfem_error("Don't use this");
+        //mfem_error("Don't use this: UseExternalData");
         // NOTE(gelever): if this is implemented, this will make a copy.
         // Which is not the intention of the function.
+        SetSize(i, j, k);
+        const int size = i * j;
+        for (int k_ = 0; k_ < k; ++k_)
+        {
+            std::copy(ext_data + k_ * size, ext_data + (k_ + 1) * size, tdata[k_].GetData());
+        }
     }
 
     /// Sets the tensor elements equal to constant c
@@ -754,6 +766,7 @@ public:
     { return tdata[k](i, j); }
     //{ return tdata[i+SizeI()*(j+SizeJ()*k)]; }
 
+    DenseMatrix& GetDenseMatrix(int k) { return tdata[k]; }
     double* GetData(int k) { return tdata[k].GetData(); }
     //double *GetData(int k) { return tdata+k*Mk.Height()*Mk.Width(); }
 
