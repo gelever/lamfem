@@ -469,11 +469,17 @@ public:
         explicitly before calling class methods. */
     LUFactors() : data(0), ipiv(0){ }
 
+    LUFactors(const DenseMatrix& A) : data(A.Data(), A.Data() + A.Width() * A.Height()), ipiv(A.Height())
+    {
+        MFEM_ASSERT(A.Width() == A.Height(), "LUFactors input not square");
+    }
+
     LUFactors(double* data_, int* ipiv_) : LUFactors()
     {
         mfem_error("Don't use this constructor: LUFactors::LUFactors");
 
     }
+
     LUFactors(const std::vector<double>& data_, const std::vector<int>& ipiv_) : data(data_), ipiv(ipiv_) { }
 
     /** Factorize the current data of size (m x m) overwriting it with the LU
