@@ -391,9 +391,9 @@ double DenseMatrix::Trace() const
     return t;
 }
 
-MatrixInverse* DenseMatrix::Inverse() const
+DenseMatrixInverse DenseMatrix::Inverse() const
 {
-    return new DenseMatrixInverse(*this);
+    return DenseMatrixInverse(*this);
 }
 
 double DenseMatrix::Det() const

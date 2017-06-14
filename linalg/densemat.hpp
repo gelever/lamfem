@@ -20,6 +20,8 @@
 namespace mfem
 {
 
+class DenseMatrixInverse;
+
 /// Data type dense matrix using column-major storage
 class DenseMatrix : public Matrix
 {
@@ -187,9 +189,8 @@ public:
     double InnerProduct(const Vector& x, const Vector& y) const
     { return InnerProduct((const double*) x, (const double*) y); }
 
-    /// Returns a pointer to the inverse matrix.
-    // TODO(gelever): fix this in Matrix class
-    virtual MatrixInverse* Inverse() const;
+    /// Returns the inverse matrix.
+    DenseMatrixInverse Inverse() const;
 
     /// Replaces the current matrix with its inverse
     void Invert();

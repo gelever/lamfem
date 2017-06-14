@@ -14,6 +14,8 @@
 
 // Data types for sparse matrix
 
+#include <vector>
+
 #include "../general/mem_alloc.hpp"
 //#include "../general/table.hpp"
 #include "../general/array.hpp"
@@ -38,7 +40,7 @@ public:
 /// Data type sparse matrix
 class SparseMatrix : public AbstractSparseMatrix
 {
-protected:
+private:
    /// @name Arrays used by the CSR storage format.
    /** */
    ///@{
@@ -48,6 +50,10 @@ protected:
        this array is always zero, I[0] = 0, and the last entry, I[height], gives
        the total number of entries stored (at a minimum, all nonzeros must be
        represented) in the sparse matrix. */
+	std::vector<int> indptr;
+	std::vector<int> indices;
+	std::vector<double> data;
+
    int *I;
    /** @brief %Array with size #I[#height], containing the column indices for
        all matrix entries, as indexed by the #I array. */
@@ -95,6 +101,32 @@ public:
    /** @brief Create a sparse matrix in CSR format. Ownership of @a i, @a j, and
        @a data is transferred to the SparseMatrix. */
    SparseMatrix(int *i, int *j, double *data, int m, int n);
+   //SparseMatrix(std::vector<int>& _indptr,
+			    //std::vector<int>& _indices,
+				//std::vector<double>& _data,
+   SparseMatrix(std::vector<int> _indptr,
+			    std::vector<int> _indices,
+				std::vector<double> _data,
+				int nrows, int ncols)
+	   :
+	   AbstractSparseMatrix(nrows, ncols),
+	   indptr(std::move(_indptr)),
+	   indices(std::move(_indices)),
+	   data(std::move(_data)),
+	   I(indptr.data()),
+	   J(indices.data()),
+	   A(data.data()),
+	   Rows(nullptr),
+	   ColPtrJ(nullptr),
+	   ColPtrNode(nullptr),
+#ifdef MFEM_USE_MEMALLOC
+	   NodesMem(nullptr),
+#endif
+	   isSorted(false),
+ //Change this once no more ptr
+	   ownGraph(false),
+	   ownData(false)
+	   { };
 
    /** @brief Create a sparse matrix in CSR format. Ownership of @a i, @a j, and
        @a data is optionally transferred to the SparseMatrix. */
@@ -112,6 +144,7 @@ public:
        will use a shallow copy (copy the pointers only) without transferring
        ownership. */
    SparseMatrix(const SparseMatrix &mat, bool copy_graph = true);
+   //SparseMatrix(const SparseMatrix &mat, bool copy_graph = true);
 
    /** @brief Clear the contents of the SparseMatrix and make it a reference to
        @a master */
@@ -126,7 +159,7 @@ public:
    void Clear() { Destroy(); SetEmpty(); }
 
    /// Check if the SparseMatrix is empty.
-   bool Empty() const { return (A == NULL) && (Rows == NULL); }
+   bool Empty() const { return (A == nullptr) && (Rows == nullptr); }
 
    /// Return the array #I
    inline int *GetI() const { return I; }
@@ -212,7 +245,7 @@ public:
    double GetRowNorml1(int irow) const;
 
    /// Returns a pointer to approximation of the matrix inverse.
-   virtual MatrixInverse *Inverse() const;
+   //virtual MatrixInverse *Inverse() const;
 
    /// Eliminates a column from the transpose matrix.
    void EliminateRow(int row, const double sol, Vector &rhs);
@@ -226,7 +259,7 @@ public:
    void EliminateRow(int row, int setOneDiagonal = 0);
    void EliminateCol(int col);
    /// Eliminate all columns 'i' for which cols[i] != 0
-   void EliminateCols(Array<int> &cols, Vector *x = NULL, Vector *b = NULL);
+   void EliminateCols(Array<int> &cols, Vector *x = nullptr, Vector *b = nullptr);
 
    /** Eliminates the column 'rc' to the 'rhs', deletes the row 'rc' and
        replaces the element (rc,rc) with 1.0; assumes that element (i,rc)
@@ -281,7 +314,7 @@ public:
    /// A slightly more general version of the Finalize(int) method.
    void Finalize(int skip_zeros, bool fix_empty_rows);
 
-   bool Finalized() const { return (A != NULL); }
+   bool Finalized() const { return (A != nullptr); }
    bool areColumnsSorted() const { return isSorted; }
 
    /** Split the matrix into M x N blocks of sparse matrices in CSR format.
@@ -420,13 +453,13 @@ SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
                                              int useActualWidth);
 
 /** Matrix product A.B.
-    If OAB is not NULL, we assume it has the structure
+    If OAB is not nullptr, we assume it has the structure
     of A.B and store the result in OAB.
-    If OAB is NULL, we create a new SparseMatrix to store
+    If OAB is nullptr, we create a new SparseMatrix to store
     the result and return a pointer to it.
     All matrices must be finalized. */
 SparseMatrix *Mult(const SparseMatrix &A, const SparseMatrix &B,
-                   SparseMatrix *OAB = NULL);
+                   SparseMatrix *OAB = nullptr);
 
 /// Matrix product of sparse matrices. A and B do not need to be CSR matrices
 SparseMatrix *MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
@@ -441,7 +474,7 @@ DenseMatrix *RAP(const SparseMatrix &A, DenseMatrix &P);
 /** RAP matrix product (with P=R^T). ORAP is like OAB above.
     All matrices must be finalized. */
 SparseMatrix *RAP(const SparseMatrix &A, const SparseMatrix &R,
-                  SparseMatrix *ORAP = NULL);
+                  SparseMatrix *ORAP = nullptr);
 
 /// General RAP with given R^T, A and P
 SparseMatrix *RAP(const SparseMatrix &Rt, const SparseMatrix &A,
@@ -449,7 +482,7 @@ SparseMatrix *RAP(const SparseMatrix &Rt, const SparseMatrix &A,
 
 /// Matrix multiplication A^t D A. All matrices must be finalized.
 SparseMatrix *Mult_AtDA(const SparseMatrix &A, const Vector &D,
-                        SparseMatrix *OAtDA = NULL);
+                        SparseMatrix *OAtDA = nullptr);
 
 
 /// Matrix addition result = A + B.
@@ -467,22 +500,22 @@ inline void SparseMatrix::SetColPtr(const int row) const
 {
    if (Rows)
    {
-      if (ColPtrNode == NULL)
+      if (ColPtrNode == nullptr)
       {
          ColPtrNode = new RowNode *[width];
          for (int i = 0; i < width; i++)
          {
-            ColPtrNode[i] = NULL;
+            ColPtrNode[i] = nullptr;
          }
       }
-      for (RowNode *node_p = Rows[row]; node_p != NULL; node_p = node_p->Prev)
+      for (RowNode *node_p = Rows[row]; node_p != nullptr; node_p = node_p->Prev)
       {
          ColPtrNode[node_p->Column] = node_p;
       }
    }
    else
    {
-      if (ColPtrJ == NULL)
+      if (ColPtrJ == nullptr)
       {
          ColPtrJ = new int[width];
          for (int i = 0; i < width; i++)
@@ -501,10 +534,10 @@ inline void SparseMatrix::SetColPtr(const int row) const
 inline void SparseMatrix::ClearColPtr() const
 {
    if (Rows)
-      for (RowNode *node_p = Rows[current_row]; node_p != NULL;
+      for (RowNode *node_p = Rows[current_row]; node_p != nullptr;
            node_p = node_p->Prev)
       {
-         ColPtrNode[node_p->Column] = NULL;
+         ColPtrNode[node_p->Column] = nullptr;
       }
    else
       for (int j = I[current_row], end = I[current_row+1]; j < end; j++)
@@ -518,7 +551,7 @@ inline double &SparseMatrix::SearchRow(const int col)
    if (Rows)
    {
       RowNode *node_p = ColPtrNode[col];
-      if (node_p == NULL)
+      if (node_p == nullptr)
       {
 #ifdef MFEM_USE_MEMALLOC
          node_p = NodesMem->Alloc();
@@ -545,7 +578,7 @@ inline double SparseMatrix::_Get_(const int col) const
    if (Rows)
    {
       RowNode *node_p = ColPtrNode[col];
-      return (node_p == NULL) ? 0.0 : node_p->Value;
+      return (node_p == nullptr) ? 0.0 : node_p->Value;
    }
    else
    {
@@ -562,7 +595,7 @@ inline double &SparseMatrix::SearchRow(const int row, const int col)
 
       for (node_p = Rows[row]; 1; node_p = node_p->Prev)
       {
-         if (node_p == NULL)
+         if (node_p == nullptr)
          {
 #ifdef MFEM_USE_MEMALLOC
             node_p = NodesMem->Alloc();

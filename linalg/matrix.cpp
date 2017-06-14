@@ -24,6 +24,7 @@ void Matrix::Print (std::ostream & out, int width_) const
    using namespace std;
    // output flags = scientific + show sign
    out << setiosflags(ios::scientific | ios::showpos);
+
    for (int i = 0; i < height; i++)
    {
       out << "[row " << i << "]\n";

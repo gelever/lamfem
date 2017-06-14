@@ -40,9 +40,6 @@ public:
    /// Returns constant reference to a_{ij}.
    virtual const double &Elem(int i, int j) const = 0;
 
-   /// Returns a pointer to (an approximation) of the matrix inverse.
-   virtual MatrixInverse *Inverse() const = 0;
-
    /// Finalizes the matrix initialization.
    virtual void Finalize(int) { }
 

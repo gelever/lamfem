@@ -79,12 +79,6 @@ public:
    virtual double& Elem (int i, int j);
    /// Returns constant reference to a_{ij}.
    virtual const double& Elem (int i, int j) const;
-   /// Returns a pointer to (approximation) of the matrix inverse.
-   virtual MatrixInverse * Inverse() const
-   {
-      mfem_error("BlockMatrix::Inverse not implemented \n");
-      return static_cast<MatrixInverse*>(NULL);
-   }
    //@}
 
    //@name AbstractSparseMatrix interface
