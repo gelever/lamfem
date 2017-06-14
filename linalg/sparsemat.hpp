@@ -15,6 +15,7 @@
 // Data types for sparse matrix
 
 #include <vector>
+#include <numeric>
 
 #include "../general/mem_alloc.hpp"
 //#include "../general/table.hpp"
