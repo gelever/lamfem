@@ -64,7 +64,7 @@ DenseMatrix::DenseMatrix(const DenseMatrix& mat, char ch)
     }
 }
 
-DenseMatrix::DenseMatrix(DenseMatrix&& d) : Matrix(d.Height(), d.Width())
+DenseMatrix::DenseMatrix(DenseMatrix&& d) : Matrix(0)
 {
     swap(*this, d);
 }
