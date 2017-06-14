@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
     DenseMatrixInverse d_inv(d);
     DenseMatrix x =  d_inv.Mult(d);
 
+	DenseMatrix d_rvalue(d_inv.Mult(d));
+	DenseMatrix d_rvalue2;
+
     DenseMatrix four = d.Mult(d);
     DenseMatrix four_also = d.MultTranspose(d);
     DenseMatrix four_copy = four;
@@ -66,6 +69,8 @@ int main(int argc, char *argv[])
         d_i.SetSize(2, 2);
         d_i(0, 0) = 5.0;
     }
+
+	d_rvalue2 = four.Mult(four_also);
 
 
     auto dvect_copy = dvect;
@@ -80,6 +85,8 @@ int main(int argc, char *argv[])
         d_i.Print();
 
     d.Print();
+    d_rvalue.Print("rvalue:");
+    d_rvalue2.Print("rvalue opequal:");
     x.Print();
 
     four.Print();
