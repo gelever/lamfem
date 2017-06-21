@@ -67,17 +67,16 @@ SparseMatrix::SparseMatrix(int *i, int *j, double *data, int m, int n)
 #ifdef MFEM_USE_MEMALLOC
    NodesMem = nullptr;
 #endif
+   mfem_error("\n\nDATA COPIED - USE STD::VECTOR: SparseMatrix\n\n");
 }
 
-SparseMatrix::SparseMatrix(int *i, int *j, double *data, int m, int n,
+SparseMatrix::SparseMatrix(int *i, int *j, double *_data, int m, int n,
                            bool ownij, bool owna, bool issorted)
    : AbstractSparseMatrix(m, n),
 	 indptr(i, i + m + 1),
-	 indices(j, j + i[m]),
-	 data(data, data + i[m]),
      I(i),
      J(j),
-     A(data),
+     A(_data),
      Rows(nullptr),
      ColPtrJ(nullptr),
      ColPtrNode(nullptr),
@@ -89,6 +88,8 @@ SparseMatrix::SparseMatrix(int *i, int *j, double *data, int m, int n,
    NodesMem = nullptr;
 #endif
 
+   mfem_error("\n\nDATA COPIED - USE STD::VECTOR: SparseMatrix\n\n");
+
    if ( A == nullptr )
    {
       ownData = true;
@@ -98,7 +99,16 @@ SparseMatrix::SparseMatrix(int *i, int *j, double *data, int m, int n,
       {
          A[i] = 0.0;
       }
+
+	 data = std::vector<double>(nnz, 0);
    }
+   else
+   {
+
+	 indices = std::vector<int>(j, j + i[m]);
+	 data = std::vector<double>(_data, _data + i[m]);
+   }
+
 }
 
 SparseMatrix::SparseMatrix(int nrows, int ncols, int rowsize)
@@ -116,6 +126,16 @@ SparseMatrix::SparseMatrix(int nrows, int ncols, int rowsize)
 #ifdef MFEM_USE_MEMALLOC
    NodesMem = nullptr;
 #endif
+   I = indptr.data();
+   J = indices.data();
+   A = data.data();
+
+   for (int i = 0; i <= nrows; i++)
+   {
+	  indptr[i] = i * rowsize;
+   }
+
+   /*
    I = new int[nrows + 1];
    J = new int[nrows * rowsize];
    A = new double[nrows * rowsize];
@@ -125,6 +145,7 @@ SparseMatrix::SparseMatrix(int nrows, int ncols, int rowsize)
       I[i] = i * rowsize;
 	  indptr[i] = i * rowsize;
    }
+   */
 }
 
 SparseMatrix::SparseMatrix(const SparseMatrix &mat, bool copy_graph)
@@ -132,8 +153,15 @@ SparseMatrix::SparseMatrix(const SparseMatrix &mat, bool copy_graph)
 	 indptr(mat.indptr), indices(mat.indices),
 	 data(mat.data)
 {
+   I = indptr.data();
+   J = indices.data();
+   A = data.data();
+      ownGraph = false;
+      ownData = false;
+
    if (mat.Finalized())
    {
+	   /*
       const int nnz = mat.I[height];
       if (copy_graph)
       {
@@ -153,6 +181,7 @@ SparseMatrix::SparseMatrix(const SparseMatrix &mat, bool copy_graph)
       A = new double[nnz];
       memcpy(A, mat.A, sizeof(double)*nnz);
       ownData = true;
+	  */
 
       Rows = nullptr;
 #ifdef MFEM_USE_MEMALLOC
@@ -183,11 +212,11 @@ SparseMatrix::SparseMatrix(const SparseMatrix &mat, bool copy_graph)
          *node_pp = nullptr;
       }
 
-      I = nullptr;
-      J = nullptr;
-      A = nullptr;
-      ownGraph = true;
-      ownData = true;
+      //I = nullptr;
+      //J = nullptr;
+      //A = nullptr;
+      //ownGraph = true;
+      //ownData = true;
    }
 
    current_row = -1;
@@ -218,8 +247,8 @@ void SparseMatrix::SetEmpty()
 	data.resize(0);
 
    height = width = 0;
-   I = J = nullptr;
-   A = nullptr;
+   //I = J = nullptr;
+   //A = nullptr;
    Rows = nullptr;
    current_row = -1;
    ColPtrJ = nullptr;
@@ -238,10 +267,9 @@ int SparseMatrix::RowSize(const int i) const
       gi = -1-gi;
    }
 
-   if (I)
+   if (indptr.size() > 0)
    {
-      return I[gi+1]-I[gi];
-	  // return indptr[gi + 1] - indptr[gi];
+	  return indptr[gi + 1] - indptr[gi];
    }
 
    int s = 0;
@@ -2690,44 +2718,43 @@ void SparseMatrixFunction (SparseMatrix & S, double (*f)(double))
    }
 }
 
-SparseMatrix *Transpose (const SparseMatrix &A)
+SparseMatrix Transpose(const SparseMatrix &A)
 {
    MFEM_VERIFY(
       A.Finalized(),
       "Finalize must be called before Transpose. Use TransposeRowMatrix instead");
 
-   int i, j, end;
-   int m, n, nnz, *A_i, *A_j, *At_i, *At_j;
-   double *A_data, *At_data;
 
-   m      = A.Height(); // number of rows of A
-   n      = A.Width();  // number of columns of A
-   nnz    = A.NumNonZeroElems();
-   A_i    = A.GetI();
-   A_j    = A.GetJ();
-   A_data = A.GetData();
+   int m = A.Height(); // number of rows of A
+   int n = A.Width();  // number of columns of A
+   int nnz = A.NumNonZeroElems();
 
-   At_i = new int[n+1];
-   At_j = new int[nnz];
-   At_data = new double[nnz];
+   const int * A_i = A.GetI();
+   const int * A_j = A.GetJ();
+   const double * A_data = A.GetData();
 
-   for (i = 0; i <= n; i++)
+   std::vector<int> At_i(n+1);
+   std::vector<int> At_j(nnz);
+   std::vector<double> At_data(nnz);
+
+   for (int i = 0; i <= n; i++)
    {
       At_i[i] = 0;
    }
-   for (i = 0; i < nnz; i++)
+
+   for (int i = 0; i < nnz; i++)
    {
       At_i[A_j[i]+1]++;
    }
-   for (i = 1; i < n; i++)
+
+   for (int i = 1; i < n; i++)
    {
       At_i[i+1] += At_i[i];
    }
 
-   for (i = j = 0; i < m; i++)
+   for (int i = 0; i < m; i++)
    {
-      end = A_i[i+1];
-      for ( ; j < end; j++)
+      for (int j = A_i[i]; j < A_i[i + 1]; j++)
       {
          At_j[At_i[A_j[j]]] = i;
          At_data[At_i[A_j[j]]] = A_data[j];
@@ -2735,35 +2762,37 @@ SparseMatrix *Transpose (const SparseMatrix &A)
       }
    }
 
-   for (i = n; i > 0; i--)
+   for (int i = n; i > 0; i--)
    {
       At_i[i] = At_i[i-1];
    }
+
    At_i[0] = 0;
 
-   return  new SparseMatrix (At_i, At_j, At_data, n, m);
+   return SparseMatrix(std::move(At_i),
+					   std::move(At_j),
+					   std::move(At_data),
+					   n, m);
 }
 
-SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
+SparseMatrix TransposeAbstractSparseMatrix(const AbstractSparseMatrix &A,
                                              int useActualWidth)
 {
-   int i, j;
-   int m, n, nnz, *At_i, *At_j;
-   double *At_data;
    Array<int> Acols;
    Vector Avals;
 
-   m = A.Height(); // number of rows of A
+   int m = A.Height(); // number of rows of A
+
+   int n;
    if (useActualWidth)
    {
       n = 0;
-      int tmp;
-      for (i = 0; i < m; i++)
+      for (int i = 0; i < m; i++)
       {
          A.GetRow(i, Acols, Avals);
          if (Acols.Size())
          {
-            tmp = Acols.Max();
+            int tmp = Acols.Max();
             if (tmp > n)
             {
                n = tmp;
@@ -2776,34 +2805,36 @@ SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
    {
       n = A.Width(); // number of columns of A
    }
-   nnz = A.NumNonZeroElems();
 
-   At_i = new int[n+1];
-   At_j = new int[nnz];
-   At_data = new double[nnz];
+   int nnz = A.NumNonZeroElems();
 
-   for (i = 0; i <= n; i++)
+   std::vector<int> At_i(n + 1);
+   std::vector<int> At_j(nnz);
+   std::vector<double> At_data(nnz);
+
+   for (int i = 0; i <= n; i++)
    {
       At_i[i] = 0;
    }
 
-   for (i = 0; i < m; i++)
+   for (int i = 0; i < m; i++)
    {
       A.GetRow(i, Acols, Avals);
-      for (j = 0; j<Acols.Size(); ++j)
+      for (int j = 0; j<Acols.Size(); ++j)
       {
          At_i[Acols[j]+1]++;
       }
    }
-   for (i = 1; i < n; i++)
+
+   for (int i = 1; i < n; i++)
    {
       At_i[i+1] += At_i[i];
    }
 
-   for (i = 0; i < m; i++)
+   for (int i = 0; i < m; i++)
    {
       A.GetRow(i, Acols, Avals);
-      for (j = 0; j<Acols.Size(); ++j)
+      for (int j = 0; j<Acols.Size(); ++j)
       {
          At_j[At_i[Acols[j]]] = i;
          At_data[At_i[Acols[j]]] = Avals[j];
@@ -2811,185 +2842,142 @@ SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
       }
    }
 
-   for (i = n; i > 0; i--)
+   for (int i = n; i > 0; i--)
    {
       At_i[i] = At_i[i-1];
    }
+
    At_i[0] = 0;
 
-   return new SparseMatrix(At_i, At_j, At_data, n, m);
+   return SparseMatrix(At_i, At_j, At_data, n, m);
 }
 
 
-SparseMatrix *Mult (const SparseMatrix &A, const SparseMatrix &B,
-                    SparseMatrix *OAB)
+SparseMatrix Mult(const SparseMatrix &A, const SparseMatrix &B)
 {
-   int nrowsA, ncolsA, nrowsB, ncolsB;
-   int *A_i, *A_j, *B_i, *B_j, *C_i, *C_j, *B_marker;
-   double *A_data, *B_data, *C_data;
-   int ia, ib, ic, ja, jb, num_nonzeros;
-   int row_start, counter;
-   double a_entry, b_entry;
-   SparseMatrix *C;
+   int nrowsA = A.Height();
+   int ncolsA = A.Width();
 
-   nrowsA = A.Height();
-   ncolsA = A.Width();
-   nrowsB = B.Height();
-   ncolsB = B.Width();
+   int nrowsB = B.Height();
+   int ncolsB = B.Width();
 
    MFEM_VERIFY(ncolsA == nrowsB,
                "number of columns of A (" << ncolsA
                << ") must equal number of rows of B (" << nrowsB << ")");
 
-   A_i    = A.GetI();
-   A_j    = A.GetJ();
-   A_data = A.GetData();
-   B_i    = B.GetI();
-   B_j    = B.GetJ();
-   B_data = B.GetData();
+   const int * A_i    = A.GetI();
+   const int * A_j    = A.GetJ();
+   const double * A_data = A.GetData();
 
-   B_marker = new int[ncolsB];
+   const int * B_i    = B.GetI();
+   const int * B_j    = B.GetJ();
+   const double * B_data = B.GetData();
 
-   for (ib = 0; ib < ncolsB; ib++)
+   std::vector<int> B_marker(ncolsB, -1);
+
+   std::vector<int> C_i(nrowsA + 1);
+   C_i[0] = 0;
+
+   int num_nonzeros = 0;
+
+
+   for (int ic = 0; ic < nrowsA; ic++)
    {
-      B_marker[ib] = -1;
+	   for (int ia = A_i[ic]; ia < A_i[ic+1]; ia++)
+	   {
+		   const int ja = A_j[ia];
+
+		   for (int ib = B_i[ja]; ib < B_i[ja+1]; ib++)
+		   {
+			   int jb = B_j[ib];
+			   if (B_marker[jb] != ic)
+			   {
+				   B_marker[jb] = ic;
+				   num_nonzeros++;
+			   }
+		   }
+	   }
+
+	   C_i[ic + 1] = num_nonzeros;
    }
 
-   if (OAB == nullptr)
-   {
-      C_i = new int[nrowsA+1];
+   std::vector<int> C_j(num_nonzeros);
+   std::vector<double> C_data(num_nonzeros);
 
-      C_i[0] = num_nonzeros = 0;
-      for (ic = 0; ic < nrowsA; ic++)
-      {
-         for (ia = A_i[ic]; ia < A_i[ic+1]; ia++)
-         {
-            ja = A_j[ia];
-            for (ib = B_i[ja]; ib < B_i[ja+1]; ib++)
-            {
-               jb = B_j[ib];
-               if (B_marker[jb] != ic)
-               {
-                  B_marker[jb] = ic;
-                  num_nonzeros++;
-               }
-            }
-         }
-         C_i[ic+1] = num_nonzeros;
-      }
+   std::fill(begin(B_marker), end(B_marker), -1);
 
-      C_j    = new int[num_nonzeros];
-      C_data = new double[num_nonzeros];
-
-      C = new SparseMatrix (C_i, C_j, C_data, nrowsA, ncolsB);
-
-      for (ib = 0; ib < ncolsB; ib++)
-      {
-         B_marker[ib] = -1;
-      }
-   }
-   else
-   {
-      C = OAB;
-
-      MFEM_VERIFY(nrowsA == C -> Height() && ncolsB == C -> Width(),
-                  "Input matrix sizes do not match output sizes"
-                  << " nrowsA = " << nrowsA
-                  << ", C->Height() = " << C->Height()
-                  << " ncolsB = " << ncolsB
-                  << ", C->Width() = " << C->Width());
-
-      C_i    = C -> GetI();
-      C_j    = C -> GetJ();
-      C_data = C -> GetData();
-   }
-
-   counter = 0;
-   for (ic = 0; ic < nrowsA; ic++)
+   int counter = 0;
+   for (int ic = 0; ic < nrowsA; ic++)
    {
       // row_start = C_i[ic];
-      row_start = counter;
-      for (ia = A_i[ic]; ia < A_i[ic+1]; ia++)
+      const int row_start = counter;
+
+      for (int ia = A_i[ic]; ia < A_i[ic+1]; ia++)
       {
-         ja = A_j[ia];
-         a_entry = A_data[ia];
-         for (ib = B_i[ja]; ib < B_i[ja+1]; ib++)
+         const int ja = A_j[ia];
+         const double a_entry = A_data[ia];
+
+         for (int ib = B_i[ja]; ib < B_i[ja+1]; ib++)
          {
-            jb = B_j[ib];
-            b_entry = B_data[ib];
+            const int jb = B_j[ib];
+            const double b_entry = B_data[ib];
+
             if (B_marker[jb] < row_start)
             {
                B_marker[jb] = counter;
-               if (OAB == nullptr)
-               {
-                  C_j[counter] = jb;
-               }
-               C_data[counter] = a_entry*b_entry;
+               C_j[counter] = jb;
+               C_data[counter] = a_entry * b_entry;
                counter++;
             }
             else
             {
-               C_data[B_marker[jb]] += a_entry*b_entry;
+               C_data[B_marker[jb]] += a_entry * b_entry;
             }
          }
       }
    }
 
-   MFEM_VERIFY(
-      OAB == nullptr || counter == OAB->NumNonZeroElems(),
-      "With pre-allocated output matrix, number of non-zeros ("
-      << OAB->NumNonZeroElems()
-      << ") did not match number of entries changed from matrix-matrix multiply, "
-      << counter);
-
-   delete [] B_marker;
-
-   return C;
+   return SparseMatrix(C_i, C_j, C_data, nrowsA, ncolsB);;
 }
 
-SparseMatrix *MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
+SparseMatrix MultAbstractSparseMatrix(const AbstractSparseMatrix &A,
                                         const AbstractSparseMatrix &B)
 {
-   int nrowsA, ncolsA, nrowsB, ncolsB;
-   int *C_i, *C_j, *B_marker;
-   double *C_data;
-   int ia, ib, ic, ja, jb, num_nonzeros;
-   int row_start, counter;
-   double a_entry, b_entry;
-   SparseMatrix *C;
+   const int nrowsA = A.Height();
+   const int ncolsA = A.Width();
 
-   nrowsA = A.Height();
-   ncolsA = A.Width();
-   nrowsB = B.Height();
-   ncolsB = B.Width();
+   const int nrowsB = B.Height();
+   const int ncolsB = B.Width();
 
    MFEM_VERIFY(ncolsA == nrowsB,
                "number of columns of A (" << ncolsA
                << ") must equal number of rows of B (" << nrowsB << ")");
 
-   B_marker = new int[ncolsB];
+   std::vector<int> B_marker(ncolsB, -1);
 
-   for (ib = 0; ib < ncolsB; ib++)
-   {
-      B_marker[ib] = -1;
-   }
+   std::vector<int> C_i(nrowsA + 1);
+   C_i[0] = 0;
 
-   C_i = new int[nrowsA+1];
+   int num_nonzeros = 0;
 
-   C_i[0] = num_nonzeros = 0;
+   Array<int> colsA;
+   Array<int> colsB;
 
-   Array<int> colsA, colsB;
-   Vector dataA, dataB;
-   for (ic = 0; ic < nrowsA; ic++)
+   Vector dataA;
+   Vector dataB;
+
+   for (int ic = 0; ic < nrowsA; ic++)
    {
       A.GetRow(ic, colsA, dataA);
-      for (ia = 0; ia < colsA.Size(); ia++)
+      for (int ia = 0; ia < colsA.Size(); ia++)
       {
-         ja = colsA[ia];
+         const int ja = colsA[ia];
          B.GetRow(ja, colsB, dataB);
-         for (ib = 0; ib < colsB.Size(); ib++)
+
+         for (int ib = 0; ib < colsB.Size(); ib++)
          {
-            jb = colsB[ib];
+            const int jb = colsB[ib];
+
             if (B_marker[jb] != ic)
             {
                B_marker[jb] = ic;
@@ -2997,33 +2985,31 @@ SparseMatrix *MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
             }
          }
       }
-      C_i[ic+1] = num_nonzeros;
+
+      C_i[ic + 1] = num_nonzeros;
    }
 
-   C_j    = new int[num_nonzeros];
-   C_data = new double[num_nonzeros];
+   std::vector<int> C_j(num_nonzeros);
+   std::vector<double> C_data(num_nonzeros);
 
-   C = new SparseMatrix(C_i, C_j, C_data, nrowsA, ncolsB);
+   std::fill(begin(B_marker), end(B_marker), -1);
 
-   for (ib = 0; ib < ncolsB; ib++)
+   int counter = 0;
+   for (int ic = 0; ic < nrowsA; ic++)
    {
-      B_marker[ib] = -1;
-   }
-
-   counter = 0;
-   for (ic = 0; ic < nrowsA; ic++)
-   {
-      row_start = counter;
+      const int row_start = counter;
       A.GetRow(ic, colsA, dataA);
-      for (ia = 0; ia < colsA.Size(); ia++)
+
+      for (int ia = 0; ia < colsA.Size(); ia++)
       {
-         ja = colsA[ia];
-         a_entry = dataA[ia];
+         const int ja = colsA[ia];
+         const double a_entry = dataA[ia];
          B.GetRow(ja, colsB, dataB);
-         for (ib = 0; ib < colsB.Size(); ib++)
+
+         for (int ib = 0; ib < colsB.Size(); ib++)
          {
-            jb = colsB[ib];
-            b_entry = dataB[ib];
+            const int jb = colsB[ib];
+            const double b_entry = dataB[ib];
             if (B_marker[jb] < row_start)
             {
                B_marker[jb] = counter;
@@ -3039,76 +3025,65 @@ SparseMatrix *MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
       }
    }
 
-   delete [] B_marker;
-
-   return C;
+   return SparseMatrix(C_i, C_j, C_data, nrowsA, ncolsB);;
 }
 
-DenseMatrix *Mult (const SparseMatrix &A, DenseMatrix &B)
+DenseMatrix Mult(const SparseMatrix &A, const DenseMatrix &B)
 {
-   DenseMatrix *C = new DenseMatrix(A.Height(), B.Width());
+   DenseMatrix C(A.Height(), B.Width());
    Vector columnB, columnC;
+
    for (int j = 0; j < B.Width(); ++j)
    {
-      B.GetColumnReference(j, columnB);
-      C->GetColumnReference(j, columnC);
+      B.GetColumn(j, columnB);
+      C.GetColumnReference(j, columnC);
       A.Mult(columnB, columnC);
    }
+
    return C;
 }
 
-DenseMatrix *RAP (const SparseMatrix &A, DenseMatrix &P)
+DenseMatrix RAP(const SparseMatrix &A, const DenseMatrix &P)
 {
-   DenseMatrix R (P, 't'); // R = P^T
-   DenseMatrix *AP   = Mult (A, P);
-   DenseMatrix *_RAP = new DenseMatrix(R.Height(), AP->Width());
-   Mult (R, *AP, *_RAP);
-   delete AP;
-   return _RAP;
+   DenseMatrix R(P, 't'); // R = P^T
+   DenseMatrix AP = Mult(A, P);
+   DenseMatrix RAP = R.Mult(AP);
+
+   return RAP;
 }
 
-SparseMatrix *RAP (const SparseMatrix &A, const SparseMatrix &R,
+/*
+SparseMatrix RAP(const SparseMatrix &A, const SparseMatrix &R,
                    SparseMatrix *ORAP)
 {
-   SparseMatrix *P  = Transpose (R);
-   SparseMatrix *AP = Mult (A, *P);
-   delete P;
-   SparseMatrix *_RAP = Mult (R, *AP, ORAP);
-   delete AP;
+   SparseMatrix P = Transpose(R);
+   SparseMatrix AP = Mult(A, P);
+
+   SparseMatrix RAP = Mult(R, AP);
    return _RAP;
 }
+*/
 
-SparseMatrix *RAP(const SparseMatrix &Rt, const SparseMatrix &A,
+SparseMatrix RAP(const SparseMatrix &Rt, const SparseMatrix &A,
                   const SparseMatrix &P)
 {
-   SparseMatrix * R = Transpose(Rt);
-   SparseMatrix * RA = Mult(*R,A);
-   delete R;
-   SparseMatrix * out = Mult(*RA, P);
-   delete RA;
+   SparseMatrix R = Transpose(Rt);
+   SparseMatrix RA = Mult(R, A);
+   SparseMatrix out = Mult(RA, P);
+
    return out;
 }
 
-SparseMatrix *Mult_AtDA (const SparseMatrix &A, const Vector &D,
-                         SparseMatrix *OAtDA)
+SparseMatrix Mult_AtDA(const SparseMatrix &A, const Vector &D)
 {
-   int i, At_nnz, *At_j;
-   double *At_data;
+   SparseMatrix At = Transpose(A);
 
-   SparseMatrix *At = Transpose (A);
-   At_nnz  = At -> NumNonZeroElems();
-   At_j    = At -> GetJ();
-   At_data = At -> GetData();
-   for (i = 0; i < At_nnz; i++)
-   {
-      At_data[i] *= D(At_j[i]);
-   }
-   SparseMatrix *AtDA = Mult (*At, A, OAtDA);
-   delete At;
-   return AtDA;
+   At.ScaleColumns(D);
+
+   return Mult(At, A);
 }
 
-SparseMatrix * Add(double a, const SparseMatrix & A, double b,
+SparseMatrix Add(double a, const SparseMatrix & A, double b,
                    const SparseMatrix & B)
 {
    int nrows = A.Height();
@@ -3188,33 +3163,26 @@ SparseMatrix * Add(double a, const SparseMatrix & A, double b,
    }
 
    delete[] marker;
-   return new SparseMatrix(C_i, C_j, C_data, nrows, ncols);
+   return SparseMatrix(C_i, C_j, C_data, nrows, ncols);
 }
 
-SparseMatrix * Add(const SparseMatrix & A, const SparseMatrix & B)
+SparseMatrix Add(const SparseMatrix & A, const SparseMatrix & B)
 {
    return Add(1.,A,1.,B);
 }
 
-SparseMatrix * Add(Array<SparseMatrix *> & Ai)
+SparseMatrix Add(Array<SparseMatrix>& Ai)
 {
    MFEM_ASSERT(Ai.Size() > 0, "invalid size Ai.Size() = " << Ai.Size());
 
-   SparseMatrix * accumulate = Ai[0];
-   SparseMatrix * result = accumulate;
+   SparseMatrix accumulate = Ai[0];
 
    for (int i=1; i < Ai.Size(); ++i)
    {
-      result = Add(*accumulate, *Ai[i]);
-      if (i != 1)
-      {
-         delete accumulate;
-      }
-
-      accumulate = result;
+      accumulate = Add(accumulate, Ai[i]);
    }
 
-   return result;
+   return accumulate;
 }
 
 void SparseMatrix::Swap(SparseMatrix &other)

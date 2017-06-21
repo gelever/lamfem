@@ -448,9 +448,9 @@ void SparseMatrixFunction(SparseMatrix &S, double (*f)(double));
 
 
 /// Transpose of a sparse matrix. A must be finalized.
-SparseMatrix *Transpose(const SparseMatrix &A);
+SparseMatrix Transpose(const SparseMatrix &A);
 /// Transpose of a sparse matrix. A does not need to be a CSR matrix.
-SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
+SparseMatrix TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
                                              int useActualWidth);
 
 /** Matrix product A.B.
@@ -459,40 +459,43 @@ SparseMatrix *TransposeAbstractSparseMatrix (const AbstractSparseMatrix &A,
     If OAB is nullptr, we create a new SparseMatrix to store
     the result and return a pointer to it.
     All matrices must be finalized. */
-SparseMatrix *Mult(const SparseMatrix &A, const SparseMatrix &B,
+/*
+SparseMatrix Mult(const SparseMatrix &A, const SparseMatrix &B,
                    SparseMatrix *OAB = nullptr);
+				   */
+SparseMatrix Mult(const SparseMatrix &A, const SparseMatrix &B);
+		
 
 /// Matrix product of sparse matrices. A and B do not need to be CSR matrices
-SparseMatrix *MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
+SparseMatrix MultAbstractSparseMatrix (const AbstractSparseMatrix &A,
                                         const AbstractSparseMatrix &B);
 
 /// Matrix product A.B
-DenseMatrix *Mult(const SparseMatrix &A, DenseMatrix &B);
+DenseMatrix Mult(const SparseMatrix &A, DenseMatrix &B);
 
 /// RAP matrix product (with R=P^T)
-DenseMatrix *RAP(const SparseMatrix &A, DenseMatrix &P);
+DenseMatrix RAP(const SparseMatrix &A, DenseMatrix &P);
 
 /** RAP matrix product (with P=R^T). ORAP is like OAB above.
     All matrices must be finalized. */
-SparseMatrix *RAP(const SparseMatrix &A, const SparseMatrix &R,
+SparseMatrix RAP(const SparseMatrix &A, const SparseMatrix &R,
                   SparseMatrix *ORAP = nullptr);
 
 /// General RAP with given R^T, A and P
-SparseMatrix *RAP(const SparseMatrix &Rt, const SparseMatrix &A,
+SparseMatrix RAP(const SparseMatrix &Rt, const SparseMatrix &A,
                   const SparseMatrix &P);
 
 /// Matrix multiplication A^t D A. All matrices must be finalized.
-SparseMatrix *Mult_AtDA(const SparseMatrix &A, const Vector &D,
-                        SparseMatrix *OAtDA = nullptr);
+SparseMatrix Mult_AtDA(const SparseMatrix &A, const Vector &D);
 
 
 /// Matrix addition result = A + B.
-SparseMatrix * Add(const SparseMatrix & A, const SparseMatrix & B);
+SparseMatrix Add(const SparseMatrix & A, const SparseMatrix & B);
 /// Matrix addition result = a*A + b*B
-SparseMatrix * Add(double a, const SparseMatrix & A, double b,
+SparseMatrix Add(double a, const SparseMatrix & A, double b,
                    const SparseMatrix & B);
 /// Matrix addition result = sum_i A_i
-SparseMatrix * Add(Array<SparseMatrix *> & Ai);
+SparseMatrix Add(Array<SparseMatrix *> & Ai);
 
 
 // Inline methods

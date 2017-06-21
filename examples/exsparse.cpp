@@ -19,11 +19,10 @@ int main(int argc, char *argv[])
 	std::iota(begin(indices), end(indices), 0);
 	std::iota(begin(indptr), end(indptr), 0);
 
-	SparseMatrix s2(indptr.data(), indices.data(), data.data(),
-			2, 3, false, false, false);
+	SparseMatrix s2(indptr, indices, data, 2, 3);
 
-	int nnz = s.NumNonZeroElems();
-	int nnz2 = s2.NumNonZeroElems();
+	const int nnz = s.NumNonZeroElems();
+	const int nnz2 = s2.NumNonZeroElems();
 	printf("%d\n", nnz);
 	printf("%d\n", nnz2);
 
@@ -44,8 +43,13 @@ int main(int argc, char *argv[])
 
 	s3.SortColumnIndices();
 
+	SparseMatrix s4 = Transpose(s3);
+	SparseMatrix s5 = Mult(s4, s3);
+
 	printf("sort:\n");
 	s3.Print();
+	printf("s3 * s4:\n");
+	s5.Print();
 
 
 }
